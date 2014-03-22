@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v1.0
+ * Photo Sphere Viewer v1.1
  * http://jeremyheleine.com/#photo-sphere-viewer
  *
  * Copyright (c) 2014 Jeremy Heleine
@@ -223,6 +223,7 @@ var PhotoSphereViewer = function(args) {
 		m_scene.add(mesh);
 
 		// Adding events
+		attachEvent(window, 'resize', onResize);
 		attachEvent(m_container, 'mousedown', onMouseDown);
 		attachEvent(document, 'mouseup', onMouseUp);
 		attachEvent(document, 'mousemove', onMouseMove);
@@ -236,6 +237,18 @@ var PhotoSphereViewer = function(args) {
 
 		// Animation?
 		anim();
+	}
+
+	/**
+	 * Resize the canvas when the window is resized
+	 * @return (void)
+	 **/
+	var onResize = function() {
+		if (m_container.offsetWidth != m_width || m_container.offsetHeight != m_height) {
+			m_width = m_container.offsetWidth;
+			m_height = m_container.offsetHeight;
+			m_renderer.setSize(m_width, m_height);
+		}
 	}
 
 	/**
