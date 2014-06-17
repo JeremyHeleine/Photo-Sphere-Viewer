@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v1.1
+ * Photo Sphere Viewer v1.2
  * http://jeremyheleine.com/#photo-sphere-viewer
  *
  * Copyright (c) 2014 Jeremy Heleine
@@ -170,6 +170,26 @@ var PhotoSphereViewer = function(args) {
 		var img = new Image();
 
 		img.onload = function() {
+				// Resize image for mobile compatibility
+				var max_width = 2048;
+				if (isWebGLSupported()) {
+					var canvas = document.createElement('canvas');
+					var ctx = canvas.getContext('webgl');
+					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+				}
+
+				var new_width = Math.min(full_width, max_width);
+				var r = new_width / full_width;
+				full_width = new_width;
+				cropped_width *= r;
+				cropped_x *= r;
+				img.width = cropped_width;
+
+				full_height *= r;
+				cropped_height *= r;
+				cropped_y *= r;
+				img.height = cropped_height;
+
 				var buffer = document.createElement('canvas');
 				buffer.width = full_width;
 				buffer.height = full_height;
@@ -225,8 +245,11 @@ var PhotoSphereViewer = function(args) {
 		// Adding events
 		attachEvent(window, 'resize', onResize);
 		attachEvent(m_container, 'mousedown', onMouseDown);
+		attachEvent(m_container, 'touchstart', onTouchStart);
 		attachEvent(document, 'mouseup', onMouseUp);
+		attachEvent(document, 'touchend', onMouseUp);
 		attachEvent(document, 'mousemove', onMouseMove);
+		attachEvent(document, 'touchmove', onTouchMove);
 		attachEvent(m_container, 'mousewheel', onMouseWheel);
 		attachEvent(m_container, 'DOMMouseScroll', onMouseWheel);
 
@@ -247,6 +270,11 @@ var PhotoSphereViewer = function(args) {
 		if (m_container.offsetWidth != m_width || m_container.offsetHeight != m_height) {
 			m_width = m_container.offsetWidth;
 			m_height = m_container.offsetHeight;
+			m_ratio = m_width / m_height;
+
+			m_camera.aspect = m_ratio;
+			m_camera.updateProjectionMatrix();
+
 			m_renderer.setSize(m_width, m_height);
 		}
 	}
@@ -257,8 +285,30 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onMouseDown = function(evt) {
-		m_mouse_x = evt.clientX;
-		m_mouse_y = evt.clientY;
+		evt.preventDefault();
+		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
+	}
+
+	/**
+	 * The user wants to move (mobile version)
+	 * @param evt (Event) The event
+	 * @return (void)
+	 **/
+	var onTouchStart = function(evt) {
+		evt.preventDefault();
+		var touch = evt.changedTouches[0];
+		startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+	}
+
+	/**
+	 * Initializes the movement
+	 * @param x (integer) Horizontal coordinate
+	 * @param y (integer) Vertical coordinate
+	 * @return (void)
+	 **/
+	var startMove = function(x, y) {
+		m_mouse_x = x;
+		m_mouse_y = y;
 		clearTimeout(m_timeout);
 		m_mousedown = true;
 	}
@@ -269,6 +319,7 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onMouseUp = function(evt) {
+		evt.preventDefault();
 		m_mousedown = false;
 		anim();
 	}
@@ -279,10 +330,29 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onMouseMove = function(evt) {
-		if (m_mousedown) {
-			var x = evt.clientX;
-			var y = evt.clientY;
+		evt.preventDefault();
+		move(parseInt(evt.clientX), parseInt(evt.clientY));
+	}
 
+	/**
+	 * The user moves the image (mobile version)
+	 * @param evt (Event) The event
+	 * @return (void)
+	 **/
+	var onTouchMove = function(evt) {
+		evt.preventDefault();
+		var touch = evt.changedTouches[0];
+		move(parseInt(touch.clientX), parseInt(touch.clientY));
+	}
+
+	/**
+	 * Movement
+	 * @param x (integer) Horizontal coordinate
+	 * @param y (integer) Vertical coordinate
+	 * @return (void)
+	 **/
+	var move = function(x, y) {
+		if (m_mousedown) {
 			m_theta += (x - m_mouse_x) * Math.PI / 360.0;
 			m_theta -= Math.floor(m_theta / (2.0*Math.PI)) * 2.0*Math.PI;
 			m_phi += (y - m_mouse_y) * Math.PI / 180.0;
