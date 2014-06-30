@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v1.2
+ * Photo Sphere Viewer v1.2.1
  * http://jeremyheleine.com/#photo-sphere-viewer
  *
  * Copyright (c) 2014 Jeremy Heleine
@@ -295,9 +295,11 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onTouchStart = function(evt) {
-		evt.preventDefault();
 		var touch = evt.changedTouches[0];
-		startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+		if (touch.target.parentNode == m_container) {
+			evt.preventDefault();
+			startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+		}
 	}
 
 	/**
@@ -340,9 +342,11 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onTouchMove = function(evt) {
-		evt.preventDefault();
 		var touch = evt.changedTouches[0];
-		move(parseInt(touch.clientX), parseInt(touch.clientY));
+		if (touch.target.parentNode == m_container) {
+			evt.preventDefault();
+			move(parseInt(touch.clientX), parseInt(touch.clientY));
+		}
 	}
 
 	/**
