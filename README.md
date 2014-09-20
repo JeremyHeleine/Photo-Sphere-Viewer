@@ -11,8 +11,9 @@ Photo Sphere Viewer uses the Three.js library (http://threejs.org), so nothing i
 3. In JavaScript, create a new `PhotoSphereViewer` object. You must pass it an object containing at least two parameters for the panorama:
     * *panorama* (required): the path to the panorama,
     * *container* (required): the `div` in which the panorama will be displayed,
-    * *time_anim* (optional, default to *2000*): the panorama will be automatically animated after *time_anim* milliseconds ; indicate *-1* to deactivate it,
-    * *theta_offset* (optional, default to *1440*): the horizontal speed during the automatic animation ; we add *PI / theta_offset* to the angle,
+    * *time_anim* (optional, default to *2000*): the panorama will be automatically animated after *time_anim* milliseconds ; indicate *false* to deactivate it,
+    * *theta_offset* (deprecated, optional, default to *1440*): the horizontal speed during the automatic animation ; we add *PI / theta_offset* to the angle,
+    * *anim_speed* (optional, default to *2rpm*): the animation speed in revolutions per minute (rpm) or second (rps), degrees per minute (dpm) or second (dps), or radians per minute (rad per minute) or second (rad per second) ; just indicate the speed value followed by the unit (for example: *720 dpm*),
     * *loading_img* (optional, default to *null*): the path to the image shown during the loading.
 
 ## License

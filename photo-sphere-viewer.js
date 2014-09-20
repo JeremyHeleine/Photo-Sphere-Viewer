@@ -1,8 +1,8 @@
 /*
- * Photo Sphere Viewer v1.2.1
+ * Photo Sphere Viewer v1.3
  * http://jeremyheleine.com/#photo-sphere-viewer
  *
- * Copyright (c) 2014 Jeremy Heleine
+ * Copyright (c) 2014 Jérémy Heleine
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -401,43 +401,130 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	/**
-	 * Automatically animate the panorama
+	 * Automatically animates the panorama
 	 * @return (void)
 	 **/
 	var anim = function() {
-		if (m_anim >= 0) {
+		if (m_anim !== false) {
 			clearTimeout(m_timeout);
 			m_timeout = setTimeout(rotate, m_anim);
 		}
 	}
 
 	/**
-	 * Rotate the panorama
+	 * Rotates the panorama
 	 * @return (void)
 	 **/
 	var rotate = function() {
+		// Returns to the equator
 		m_phi -= m_phi / 200;
 
-		m_theta += Math.PI / m_theta_offset;
+		// Rotates the sphere
+		m_theta += m_theta_offset;
 		m_theta -= Math.floor(m_theta / (2.0*Math.PI)) * 2.0*Math.PI;
 
 		render();
-		m_timeout = setTimeout(rotate, 15);
+		m_timeout = setTimeout(rotate, PSV_ANIM_TIMEOUT);
 	}
 
-	// Parameters
+	/**
+	 * Sets the animation speed
+	 * @param speed (string) The speed, in radians/degrees/revolutions per second/minute
+	 * @return (void)
+	 **/
+	var setAnimSpeed = function(speed) {
+		speed = speed.toString().trim();
+
+		// Speed extraction
+		var speed_value = parseFloat(speed.replace(/^([0-9-]+(?:\.[0-9]*)?).*$/, '$1'));
+		var speed_unit = speed.replace(/^[0-9-]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+		// "per minute" -> "per second"
+		if (speed_unit.match(/(pm|per minute)$/))
+			speed_value /= 60;
+
+		var rad_per_second = 0;
+
+		// Which unit?
+		switch (speed_unit) {
+			// Revolutions per minute / second
+			case 'rpm':
+			case 'rev per minute':
+			case 'revolutions per minute':
+			case 'rps':
+			case 'rev per second':
+			case 'revolutions per second':
+				// speed * 2pi
+				rad_per_second = speed_value * 2 * Math.PI;
+				break;
+
+			// Degrees per minute / second
+			case 'dpm':
+			case 'deg per minute':
+			case 'degrees per minute':
+			case 'dps':
+			case 'deg per second':
+			case 'degrees per second':
+				// Degrees to radians (rad = deg * pi / 180)
+				rad_per_second = speed_value * Math.PI / 180;
+				break;
+
+			// Radians per minute / second
+			case 'rad per minute':
+			case 'radians per minute':
+			case 'rad per second':
+			case 'radians per second':
+				rad_per_second = speed_value;
+				break;
+
+			// Unknown unit
+			default:
+				m_anim = false;
+		}
+
+		// Theta offset
+		m_theta_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
+	}
+
+	// Required parameters
 	if (args === undefined || args.panorama === undefined || args.container === undefined) {
 		console.log('PhotoSphereViewer: no value given for panorama or container');
 		return;
 	}
 
-	// Some useful attributes
+	// Constants
+	var PSV_FRAMES_PER_SECOND = 60;
+	var PSV_ANIM_TIMEOUT = 1000 / PSV_FRAMES_PER_SECOND;
+
+	// URL to the panorama
 	var m_panorama = args.panorama;
+
+	// Container of the panorama
 	var m_container = args.container;
-	var m_anim = (args.time_anim !== undefined) ? args.time_anim : 2000;
-	var m_theta_offset = (args.theta_offset !== undefined) ? args.theta_offset : 1440;
+
+	// Delay before the animation
+	var m_anim = 2000;
+	if (args.time_anim !== undefined) {
+		if (typeof args.time_anim == 'number' && args.time_anim >= 0)
+			m_anim = args.time_anim;
+
+		else
+			m_anim = false;
+	}
+
+	// Deprecated: horizontal offset for the animation
+	var m_theta_offset = (args.theta_offset !== undefined) ? Math.PI / parseInt(args.theta_offset) : Math.PI / 1440;
+
+	// Horizontal animation speed
+	if (args.anim_speed !== undefined)
+		setAnimSpeed(args.anim_speed);
+	else
+		setAnimSpeed('2rpm');
+
+	// Loading image
 	var m_loading_img = (args.loading_img !== undefined) ? args.loading_img : null;
 
+	// Some useful attributes
 	var m_width, m_height, m_ratio;
 	var m_renderer, m_scene, m_camera;
 	var m_fov = 90, m_phi = 0, m_theta = 0;
