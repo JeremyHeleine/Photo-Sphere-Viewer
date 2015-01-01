@@ -1,8 +1,8 @@
 /*
-* Photo Sphere Viewer v2.0
+* Photo Sphere Viewer v2.0.1
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
-* Copyright (c) 2014 Jérémy Heleine
+* Copyright (c) 2014,2015 Jérémy Heleine
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -113,7 +113,7 @@ var PhotoSphereViewer = function(args) {
 			loadXMP();
 
 		else
-			loadTexture(panorama);
+			createBuffer(false);
 	}
 
 	/**
@@ -162,19 +162,21 @@ var PhotoSphereViewer = function(args) {
 
 					// No data retrieved
 					if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
-						loadTexture(panorama);
+						createBuffer(false);
 						return;
 					}
 
 					// Useful values
-					var full_width = parseInt(getAttribute(data, 'FullPanoWidthPixels'));
-					var full_height = parseInt(getAttribute(data, 'FullPanoHeightPixels'));
-					var cropped_width = parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels'));
-					var cropped_height = parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels'));
-					var cropped_x = parseInt(getAttribute(data, 'CroppedAreaLeftPixels'));
-					var cropped_y = parseInt(getAttribute(data, 'CroppedAreaTopPixels'));
+					var pano_data = {
+							full_width: parseInt(getAttribute(data, 'FullPanoWidthPixels')),
+							full_height: parseInt(getAttribute(data, 'FullPanoHeightPixels')),
+							cropped_width: parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels')),
+							cropped_height: parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels')),
+							cropped_x: parseInt(getAttribute(data, 'CroppedAreaLeftPixels')),
+							cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
+						};
 
-					createBuffer(full_width, full_height, cropped_width, cropped_height, cropped_x, cropped_y);
+					createBuffer(pano_data);
 				}
 			};
 
@@ -184,14 +186,27 @@ var PhotoSphereViewer = function(args) {
 
 	/**
 	 * Creates an image in the right dimensions
+	 * @param pano_data (mixed) An object containing the panorama XMP data (false if it there is not)
 	 * @return (void)
 	 **/
 
-	var createBuffer = function(full_width, full_height, cropped_width, cropped_height, cropped_x, cropped_y) {
+	var createBuffer = function(pano_data) {
 		var img = new Image();
 
 		img.onload = function() {
-				// Resize image for mobile compatibility
+				// No XMP data?
+				if (!pano_data) {
+					pano_data = {
+						full_width: img.width,
+						full_height: img.height,
+						cropped_width: img.width,
+						cropped_height: img.height,
+						cropped_x: 0,
+						cropped_y: 0,
+					};
+				}
+
+				// Size limit for mobile compatibility
 				var max_width = 2048;
 				if (isWebGLSupported()) {
 					var canvas = document.createElement('canvas');
@@ -199,24 +214,28 @@ var PhotoSphereViewer = function(args) {
 					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
 				}
 
-				var new_width = Math.min(full_width, max_width);
-				var r = new_width / full_width;
-				full_width = new_width;
-				cropped_width *= r;
-				cropped_x *= r;
-				img.width = cropped_width;
+				// Buffer width (not too big)
+				var new_width = Math.min(pano_data.full_width, max_width);
+				var r = new_width / pano_data.full_width;
 
-				full_height *= r;
-				cropped_height *= r;
-				cropped_y *= r;
-				img.height = cropped_height;
+				pano_data.full_width = new_width;
+				pano_data.cropped_width *= r;
+				pano_data.cropped_x *= r;
+				img.width = pano_data.cropped_width;
 
+				// Buffer height (proportional to the width)
+				pano_data.full_height *= r;
+				pano_data.cropped_height *= r;
+				pano_data.cropped_y *= r;
+				img.height = pano_data.cropped_height;
+
+				// Buffer creation
 				var buffer = document.createElement('canvas');
-				buffer.width = full_width;
-				buffer.height = full_height;
-				var ctx = buffer.getContext('2d');
+				buffer.width = pano_data.full_width;
+				buffer.height = pano_data.full_height;
 
-				ctx.drawImage(img, cropped_x, cropped_y, cropped_width, cropped_height);
+				var ctx = buffer.getContext('2d');
+				ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
 				loadTexture(buffer.toDataURL('image/png'));
 			};
 

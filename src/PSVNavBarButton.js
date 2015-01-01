@@ -1,8 +1,8 @@
 /*
-* Photo Sphere Viewer v2.0
+* Photo Sphere Viewer v2.0.1
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
-* Copyright (c) 2014 Jérémy Heleine
+* Copyright (c) 2014,2015 Jérémy Heleine
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
