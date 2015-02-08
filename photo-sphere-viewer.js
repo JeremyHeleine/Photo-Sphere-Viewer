@@ -192,6 +192,7 @@ var PhotoSphereViewer = function(args) {
 
 	var createBuffer = function(pano_data) {
 		var img = new Image();
+		img.setAttribute('crossOrigin', 'anonymous');
 
 		img.onload = function() {
 				// No XMP data?
