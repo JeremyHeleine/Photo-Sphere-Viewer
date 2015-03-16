@@ -1,0 +1,50 @@
+body {
+	margin: 0;
+	font-family: 'Liberation Sans', sans-serif;
+}
+
+header {
+	margin-bottom: 40px;
+	padding: 30px 20px;
+	background: linear-gradient(to left, #F0F0F0, #FFFFFF 50%);
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+	text-align: right;
+}
+
+header h1 {
+	margin: 0;
+	color: #3D3D3D;
+}
+
+#content {
+	width: 70%;
+	max-width: 1000px;
+	margin: 0 auto;
+	line-height: 1.5em;
+	font-size: 1.1em;
+}
+
+#container, #your-pano {
+	width: 70%;
+	height: 0;
+	margin: 0 auto;
+}
+
+p {
+	margin-bottom: 30px;
+}
+
+a {
+	text-decoration: none;
+	color: #0096FF;
+}
+
+a:hover {
+	color: #FF9600;
+}
+
+code {
+	padding: 5px 10px;
+	border-radius: 3px;
+	background-color: #F0F0F0;
+}

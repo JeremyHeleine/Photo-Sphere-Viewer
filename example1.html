@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>Photo Sphere Viewer</title>
+		<meta name="viewport" content="initial-scale=1.0" />
+		<link rel="stylesheet" href="./example1.css" />
+		<script src="./three.min.js"></script>
+		<script src="./photo-sphere-viewer.js"></script>
+		<script src="./example1.js"></script>
+	</head>
+
+	<body>
+		<header>
+			<h1>Example of use of Photo Sphere Viewer</h1>
+		</header>
+
+		<div id="content">
+			<p>This example lets you test Photo Sphere Viewer by loading a predefined panorama (the one which was already loaded by the other example). To see this panorama, just hit the link below: currently, the <code>div</code> has a height of 0 pixel but Photo Sphere Viewer will increase it to 500 pixels.</p>
+
+			<div id="container"></div>
+
+			<p style="text-align: center;">
+				<a href="#" id="go">Load the predefined panorama</a>
+			</p>
+
+			<p>Note that the panorama is here given as a relative path, but you can give to Photo Sphere Viewer an absolute one or an URL pointing to another website if this website allows CORS.</p>
+
+			<p>Have you got a panorama stored on your computer? Try to read it with Photo Sphere Viewer with the following button. The code uses the FileReader API and is very simple to write (you can retrieve the source code in the <code>example1.js</code> file).</p>
+
+			<div id="your-pano"></div>
+
+			<form method="get" action="example1.html">
+				<p style="text-align: center;">
+					<input type="file" name="pano" id="pano" />
+				</p>
+			</form>
+		</div>
+	</body>
+
+</html>

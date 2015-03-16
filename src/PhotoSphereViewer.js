@@ -1,5 +1,5 @@
 /*
-* Photo Sphere Viewer v2.0.1
+* Photo Sphere Viewer v2.1
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
 * Copyright (c) 2014,2015 Jérémy Heleine
@@ -30,12 +30,17 @@
  * - container (HTMLElement) Panorama container (should be a div or equivalent)
  * - autoload (boolean) (optional) (true) true to automatically load the panorama, false to load it later (with the .load() method)
  * - usexmpdata (boolean) (optional) (true) true if Photo Sphere Viewer must read XMP data, false if it is not necessary
+ * - min_fov (number) (optional) (30) The minimal field of view, in degrees, between 1 and 179
+ * - max_fov (number) (optional) (90) The maximal field of view, in degrees, between 1 and 179
+ * - long_offset (number) (optional) (PI/360) The longitude to travel per pixel moved by mouse/touch
+ * - lat_offset (number) (optional) (PI/180) The latitude to travel per pixel moved by mouse/touch
  * - time_anim (integer) (optional) (2000) Delay before automatically animating the panorama in milliseconds, false to not animate
  * - theta_offset (integer) (optional) (1440) (deprecated) The PI fraction to add to theta during the animation
  * - anim_speed (string) (optional) (2rpm) Animation speed in radians/degrees/revolutions per second/minute
  * - navbar (boolean) (optional) (false) Display the navigation bar if set to true
- * - navbar_style (object) (optional) ({}) Style of the navigation bar
+ * - navbar_style (Object) (optional) ({}) Style of the navigation bar
  * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
+ * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
  **/
 
 var PhotoSphereViewer = function(args) {
@@ -75,6 +80,18 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	/**
+	 * Ensures that a number is in a given interval
+	 * @param x (number) The number to check
+	 * @param min (number) First endpoint
+	 * @param max (number) Second endpoint
+	 * @return (number) The checked number
+	 **/
+
+	var stayBetween = function(x, min, max) {
+		return Math.max(min, Math.min(max, x));
+	}
+
+	/**
 	 * Starts to load the panorama
 	 * @return (void)
 	 **/
@@ -107,6 +124,13 @@ var PhotoSphereViewer = function(args) {
 			console.log('PhotoSphereViewer: Three.js is not loaded.');
 			return;
 		}
+
+		// Current viewer size
+		viewer_size = {
+			width: 0,
+			height: 0,
+			ratio: 0
+		};
 
 		// XMP data?
 		if (readxmp)
@@ -236,8 +260,13 @@ var PhotoSphereViewer = function(args) {
 
 				var ctx = buffer.getContext('2d');
 				ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
-				loadTexture(buffer.toDataURL('image/png'));
+
+				loadTexture(buffer.toDataURL('image/jpeg'));
 			};
+
+		// CORS when the panorama is not given as a base64 string
+		if (!panorama.match(/^data:image\/[a-z]+;base64/))
+			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
 	}
@@ -255,6 +284,7 @@ var PhotoSphereViewer = function(args) {
 		var onLoad = function(img) {
 			texture.needsUpdate = true;
 			texture.image = img;
+
 			createScene(texture);
 		}
 
@@ -267,18 +297,22 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var createScene = function(texture) {
-		// Container size
-		width = container.offsetWidth;
-		height = container.offsetHeight;
-		ratio = width / height;
+		// New size?
+		if (new_viewer_size.width !== undefined)
+			container.style.width = new_viewer_size.width.css;
+
+		if (new_viewer_size.height !== undefined)
+			container.style.height = new_viewer_size.height.css;
+
+		onResize();
 
 		// The chosen renderer depends on whether WebGL is supported or not
 		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
-		renderer.setSize(width, height);
+		renderer.setSize(viewer_size.width, viewer_size.height);
 
 		scene = new THREE.Scene();
 
-		camera = new THREE.PerspectiveCamera(PSV_FOV_MIN, ratio, 1, 300);
+		camera = new THREE.PerspectiveCamera(PSV_FOV_MAX, viewer_size.ratio, 1, 300);
 		camera.position.set(0, 0, 0);
 		scene.add(camera);
 
@@ -320,7 +354,11 @@ var PhotoSphereViewer = function(args) {
 		// First render
 		container.innerHTML = '';
 		container.appendChild(root);
-		canvas_container.appendChild(renderer.domElement);
+
+		var canvas = renderer.domElement;
+		canvas.style.display = 'block';
+
+		canvas_container.appendChild(canvas);
 		render();
 
 		// Animation?
@@ -409,10 +447,10 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 	var onResize = function() {
-		if (container.offsetWidth != width || container.offsetHeight != height) {
+		if (container.clientWidth != viewer_size.width || container.clientHeight != viewer_size.height) {
 			resize({
-					width: container.offsetWidth,
-					height: container.offsetHeight
+					width: container.clientWidth,
+					height: container.clientHeight
 				});
 		}
 	}
@@ -426,15 +464,19 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var resize = function(size) {
-		width = (size.width !== undefined) ? parseInt(size.width) : width;
-		height = (size.height !== undefined) ? parseInt(size.height) : height;
-		ratio = width / height;
+		viewer_size.width = (size.width !== undefined) ? parseInt(size.width) : viewer_size.width;
+		viewer_size.height = (size.height !== undefined) ? parseInt(size.height) : viewer_size.height;
+		viewer_size.ratio = viewer_size.width / viewer_size.height;
 
-		camera.aspect = ratio;
-		camera.updateProjectionMatrix();
+		if (!!camera) {
+			camera.aspect = viewer_size.ratio;
+			camera.updateProjectionMatrix();
+		}
 
-		renderer.setSize(width, height);
-		render();
+		if (!!renderer) {
+			renderer.setSize(viewer_size.width, viewer_size.height);
+			render();
+		}
 	}
 
 	/**
@@ -512,10 +554,10 @@ var PhotoSphereViewer = function(args) {
 	 **/
 	var move = function(x, y) {
 		if (mousedown) {
-			theta += (x - mouse_x) * Math.PI / 360.0;
+			theta += (x - mouse_x) * PSV_LONG_OFFSET;
 			theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
-			phi += (y - mouse_y) * Math.PI / 180.0;
-			phi = Math.min(Math.PI / 2.0, Math.max(-Math.PI / 2.0, phi));
+			phi += (y - mouse_y) * PSV_LAT_OFFSET;
+			phi = stayBetween(phi, -Math.PI / 2.0, Math.PI / 2.0)
 
 			mouse_x = x;
 			mouse_y = y;
@@ -547,9 +589,9 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var zoom = function(level) {
-		zoom_lvl = Math.min(100, Math.max(0, parseInt(Math.round(level))));
+		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
 
-		camera.fov = PSV_FOV_MIN + (zoom_lvl / 100) * (PSV_FOV_MAX - PSV_FOV_MIN);
+		camera.fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 		camera.updateProjectionMatrix();
 		render();
 
@@ -649,8 +691,8 @@ var PhotoSphereViewer = function(args) {
 		speed = speed.toString().trim();
 
 		// Speed extraction
-		var speed_value = parseFloat(speed.replace(/^([0-9-]+(?:\.[0-9]*)?).*$/, '$1'));
-		var speed_unit = speed.replace(/^[0-9-]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+		var speed_value = parseFloat(speed.replace(/^(-?[0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+		var speed_unit = speed.replace(/^-?[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
 
 		// "per minute" -> "per second"
 		if (speed_unit.match(/(pm|per minute)$/))
@@ -700,6 +742,36 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	/**
+	 * Sets the viewer size
+	 * @param size (Object) An object containing the wanted width and height
+	 * @return (void)
+	 **/
+
+	var setNewViewerSize = function(size) {
+		// Checks all the values
+		for (dim in size) {
+			// Only width and height matter
+			if (dim == 'width' || dim == 'height') {
+				// Size extraction
+				var size_str = size[dim].toString().trim();
+
+				var size_value = parseFloat(size_str.replace(/^([0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+				var size_unit = size_str.replace(/^[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+				// Only percentages and pixels are allowed
+				if (size_unit != '%')
+					size_unit = 'px';
+
+				// We're good
+				new_viewer_size[dim] = {
+						css: size_value + size_unit,
+						unit: size_unit
+					};
+			}
+		}
+	}
+
+	/**
 	 * Adds an action
 	 * @param name (string) Action name
 	 * @param f (Function) The handler function
@@ -735,13 +807,17 @@ var PhotoSphereViewer = function(args) {
 		return;
 	}
 
+	// Movement speed
+	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseFloat(args.long_offset) : Math.PI / 360.0;
+	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseFloat(args.lat_offset) : Math.PI / 180.0;
+
+	// Minimal and maximal fields of view in degrees
+	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
+	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
+
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;
 	var PSV_ANIM_TIMEOUT = 1000 / PSV_FRAMES_PER_SECOND;
-
-	// Minimal and maximal fields of view in degrees
-	var PSV_FOV_MIN = 90;
-	var PSV_FOV_MAX = 30;
 
 	// Delay before the animation
 	var anim_delay = 2000;
@@ -772,12 +848,18 @@ var PhotoSphereViewer = function(args) {
 	// Style of the navigation bar
 	var navbar_style = (args.navbar_style !== undefined) ? args.navbar_style : {};
 
-	// Some useful attributes
+	// Container
 	var container = args.container;
+
+	// Size of the viewer
+	var viewer_size, new_viewer_size = {};
+	if (args.size !== undefined)
+		setNewViewerSize(args.size);
+
+	// Some useful attributes
 	var panorama = args.panorama;
 	var root, canvas_container;
-	var width, height, ratio;
-	var renderer, scene, camera;
+	var renderer = null, scene = null, camera = null;
 	var phi = 0, theta = 0;
 	var zoom_lvl = 0;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
