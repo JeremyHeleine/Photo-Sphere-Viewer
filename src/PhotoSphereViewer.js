@@ -1,28 +1,3 @@
-/*
-* Photo Sphere Viewer v2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
-
 /**
  * Viewer class
  * @param args (Object) Viewer settings
@@ -41,841 +16,718 @@
  * - navbar_style (Object) (optional) ({}) Style of the navigation bar
  * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
  * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
- **/
-
-var PhotoSphereViewer = function(args) {
-	/**
-	 * Detects whether canvas is supported
-	 * @return (boolean) true if canvas is supported, false otherwise
-	 **/
-
-	var isCanvasSupported = function() {
-		var canvas = document.createElement('canvas');
-		return !!(canvas.getContext && canvas.getContext('2d'));
-	}
-
-	/**
-	 * Detects whether WebGL is supported
-	 * @return (boolean) true if WebGL is supported, false otherwise
-	 **/
-
-	var isWebGLSupported = function() {
-		var canvas = document.createElement('canvas');
-		return !!(window.WebGLRenderingContext && canvas.getContext('webgl'));
-	}
-
-	/**
-	 * Attaches an event handler function to an elemnt
-	 * @param elt (HTMLElement) The element
-	 * @param evt (string) The event name
-	 * @param f (Function) The handler function
-	 * @return (void)
-	 **/
-
-	var addEvent = function(elt, evt, f) {
-		if (!!elt.addEventListener)
-			elt.addEventListener(evt, f, false);
-		else
-			elt.attachEvent('on' + evt, f);
-	}
-
-	/**
-	 * Ensures that a number is in a given interval
-	 * @param x (number) The number to check
-	 * @param min (number) First endpoint
-	 * @param max (number) Second endpoint
-	 * @return (number) The checked number
-	 **/
-
-	var stayBetween = function(x, min, max) {
-		return Math.max(min, Math.min(max, x));
-	}
-
-	/**
-	 * Starts to load the panorama
-	 * @return (void)
-	 **/
-
-	this.load = function() {
-		// Loading indicator (text or image if given)
-		if (!!loading_img) {
-			var loading = document.createElement('img');
-			loading.setAttribute('src', loading_img);
-			loading.setAttribute('alt', 'Loading...');
-			container.appendChild(loading);
-		}
-		else
-			container.textContent = 'Loading...';
-
-		// Adds a new container
-		root = document.createElement('div');
-		root.style.width = '100%';
-		root.style.height = '100%';
-		root.style.position = 'relative';
-
-		// Is canvas supported?
-		if (!isCanvasSupported()) {
-			container.textContent = 'Canvas is not supported, update your browser!';
-			return;
-		}
-
-		// Is Three.js loaded?
-		if (window.THREE === undefined) {
-			console.log('PhotoSphereViewer: Three.js is not loaded.');
-			return;
-		}
-
-		// Current viewer size
-		viewer_size = {
-			width: 0,
-			height: 0,
-			ratio: 0
-		};
-
-		// XMP data?
-		if (readxmp)
-			loadXMP();
-
-		else
-			createBuffer(false);
-	}
-
-	/**
-	 * Returns the value of a given attribute in the panorama metadata
-	 * @param data (string) The panorama metadata
-	 * @param attr (string) The wanted attribute
-	 * @return (string) The value of the attribute
-	 **/
-
-	var getAttribute = function(data, attr) {
-		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
-		return data.substring(a, b);
-	}
-
-	/**
-	 * Loads the XMP data with AJAX
-	 * @return (void)
-	 **/
-
-	var loadXMP = function() {
-		var xhr = null;
-
-		if (window.XMLHttpRequest)
-			xhr = new XMLHttpRequest();
-
-		else if (window.ActiveXObject) {
-			try {
-				xhr = new ActiveXObject('Msxml2.XMLHTTP');
-			}
-			catch (e) {
-				xhr = new ActiveXObject('Microsoft.XMLHTTP');
-			}
-		}
-
-		else {
-			container.textContent = 'XHR is not supported, update your browser!';
-			return;
-		}
-
-		xhr.onreadystatechange = function() {
-				if (xhr.readyState == 4 && xhr.status == 200) {
-					// Metadata
-					var binary = xhr.responseText;
-					var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
-					var data = binary.substring(a, b);
-
-					// No data retrieved
-					if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
-						createBuffer(false);
-						return;
-					}
-
-					// Useful values
-					var pano_data = {
-							full_width: parseInt(getAttribute(data, 'FullPanoWidthPixels')),
-							full_height: parseInt(getAttribute(data, 'FullPanoHeightPixels')),
-							cropped_width: parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels')),
-							cropped_height: parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels')),
-							cropped_x: parseInt(getAttribute(data, 'CroppedAreaLeftPixels')),
-							cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
-						};
-
-					createBuffer(pano_data);
-				}
-			};
-
-		xhr.open('GET', panorama, true);
-		xhr.send(null);
-	}
-
-	/**
-	 * Creates an image in the right dimensions
-	 * @param pano_data (mixed) An object containing the panorama XMP data (false if it there is not)
-	 * @return (void)
-	 **/
-
-	var createBuffer = function(pano_data) {
-		var img = new Image();
-
-		img.onload = function() {
-				// No XMP data?
-				if (!pano_data) {
-					pano_data = {
-						full_width: img.width,
-						full_height: img.height,
-						cropped_width: img.width,
-						cropped_height: img.height,
-						cropped_x: 0,
-						cropped_y: 0,
-					};
-				}
-
-				// Size limit for mobile compatibility
-				var max_width = 2048;
-				if (isWebGLSupported()) {
-					var canvas = document.createElement('canvas');
-					var ctx = canvas.getContext('webgl');
-					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
-				}
-
-				// Buffer width (not too big)
-				var new_width = Math.min(pano_data.full_width, max_width);
-				var r = new_width / pano_data.full_width;
-
-				pano_data.full_width = new_width;
-				pano_data.cropped_width *= r;
-				pano_data.cropped_x *= r;
-				img.width = pano_data.cropped_width;
-
-				// Buffer height (proportional to the width)
-				pano_data.full_height *= r;
-				pano_data.cropped_height *= r;
-				pano_data.cropped_y *= r;
-				img.height = pano_data.cropped_height;
-
-				// Buffer creation
-				var buffer = document.createElement('canvas');
-				buffer.width = pano_data.full_width;
-				buffer.height = pano_data.full_height;
-
-				var ctx = buffer.getContext('2d');
-				ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
-
-				loadTexture(buffer.toDataURL('image/jpeg'));
-			};
-
-		// CORS when the panorama is not given as a base64 string
-		if (!panorama.match(/^data:image\/[a-z]+;base64/))
-			img.setAttribute('crossOrigin', 'anonymous');
-
-		img.src = panorama;
-	}
-
-	/**
-	 * Loads the sphere texture
-	 * @param path (URL) Path to the panorama
-	 * @return (void)
-	 **/
-
-	var loadTexture = function(path) {
-		var texture = new THREE.Texture();
-		var loader = new THREE.ImageLoader();
-
-		var onLoad = function(img) {
-			texture.needsUpdate = true;
-			texture.image = img;
-
-			createScene(texture);
-		}
-
-		loader.load(path, onLoad);
-	}
-
-	/**
-	 * Creates the 3D scene
-	 * @param texture (THREE.Texture) The sphere texture
-	 * @return (void)
-	 **/
-	var createScene = function(texture) {
-		// New size?
-		if (new_viewer_size.width !== undefined)
-			container.style.width = new_viewer_size.width.css;
-
-		if (new_viewer_size.height !== undefined)
-			container.style.height = new_viewer_size.height.css;
-
-		onResize();
-
-		// The chosen renderer depends on whether WebGL is supported or not
-		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
-		renderer.setSize(viewer_size.width, viewer_size.height);
-
-		scene = new THREE.Scene();
-
-		camera = new THREE.PerspectiveCamera(PSV_FOV_MAX, viewer_size.ratio, 1, 300);
-		camera.position.set(0, 0, 0);
-		scene.add(camera);
-
-		// Sphere
-		var geometry = new THREE.SphereGeometry(200, 32, 32);
-		var material = new THREE.MeshBasicMaterial({map: texture, overdraw: true});
-		var mesh = new THREE.Mesh(geometry, material);
-		mesh.scale.x = -1;
-		scene.add(mesh);
-
-		// Canvas container
-		canvas_container = document.createElement('div');
-		canvas_container.style.position = 'absolute';
-		canvas_container.style.zIndex = 0;
-		root.appendChild(canvas_container);
-
-		// Navigation bar?
-		if (display_navbar) {
-			navbar.setStyle(navbar_style);
-			navbar.create();
-			root.appendChild(navbar.getBar());
-		}
-
-		// Adding events
-		addEvent(window, 'resize', onResize);
-		addEvent(canvas_container, 'mousedown', onMouseDown);
-		addEvent(canvas_container, 'touchstart', onTouchStart);
-		addEvent(document, 'mouseup', onMouseUp);
-		addEvent(document, 'touchend', onMouseUp);
-		addEvent(document, 'mousemove', onMouseMove);
-		addEvent(document, 'touchmove', onTouchMove);
-		addEvent(canvas_container, 'mousewheel', onMouseWheel);
-		addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
-		addEvent(document, 'fullscreenchange', fullscreenToggled);
-		addEvent(document, 'mozfullscreenchange', fullscreenToggled);
-		addEvent(document, 'webkitfullscreenchange', fullscreenToggled);
-		addEvent(document, 'MSFullscreenChange', fullscreenToggled);
-
-		// First render
-		container.innerHTML = '';
-		container.appendChild(root);
-
-		var canvas = renderer.domElement;
-		canvas.style.display = 'block';
-
-		canvas_container.appendChild(canvas);
-		render();
-
-		// Animation?
-		anim();
-	}
-
-	/**
-	* Renders an image
-	* @return (void)
-	**/
-	var render = function() {
-		var point = new THREE.Vector3();
-		point.setX(Math.cos(phi) * Math.sin(theta));
-		point.setY(Math.sin(phi));
-		point.setZ(Math.cos(phi) * Math.cos(theta));
-
-		camera.lookAt(point);
-		renderer.render(scene, camera);
-	}
-
-	/**
-	* Automatically animates the panorama
-	* @return (void)
-	**/
-	var anim = function() {
-		if (anim_delay !== false)
-			anim_timeout = setTimeout(startAutorotate, anim_delay);
-	}
-
-	/**
-	* Automatically rotates the panorama
-	* @return (void)
-	**/
-	var autorotate = function() {
-		// Returns to the equator (phi = 0)
-		phi -= phi / 200;
-
-		// Rotates the sphere
-		theta += theta_offset;
-		theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
-
-		render();
-		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
-	}
-
-	/**
-	 * Starts the autorotate animation
-	 * @return (void)
-	 **/
-
-	var startAutorotate = function() {
-		autorotate();
-		triggerAction('autorotate', true);
-	}
-
-	/**
-	 * Stops the autorotate animation
-	 * @return (void)
-	 **/
-	var stopAutorotate = function() {
-		clearTimeout(anim_timeout);
-		anim_timeout = null;
-
-		clearTimeout(autorotate_timeout);
-		autorotate_timeout = null;
-
-		triggerAction('autorotate', false);
-	}
-
-	/**
-	 * Launches/stops the autorotate animation
-	 * @return (void)
-	 **/
-	this.toggleAutorotate = function() {
-		clearTimeout(anim_timeout);
-
-		if (!!autorotate_timeout)
-			stopAutorotate();
-
-		else
-			startAutorotate();
-	}
-
-	/**
-	 * Resizes the canvas when the window is resized
-	 * @return (void)
-	 **/
-	var onResize = function() {
-		if (container.clientWidth != viewer_size.width || container.clientHeight != viewer_size.height) {
-			resize({
-					width: container.clientWidth,
-					height: container.clientHeight
-				});
-		}
-	}
-
-	/**
-	 * Resizes the canvas
-	 * @param size (Object) New dimensions
-	 * - width (integer) (optional) (previous value) The new canvas width
-	 * - height (integer) (optional) (previous valus) The new canvas height
-	 * @return (void)
-	 **/
-
-	var resize = function(size) {
-		viewer_size.width = (size.width !== undefined) ? parseInt(size.width) : viewer_size.width;
-		viewer_size.height = (size.height !== undefined) ? parseInt(size.height) : viewer_size.height;
-		viewer_size.ratio = viewer_size.width / viewer_size.height;
-
-		if (!!camera) {
-			camera.aspect = viewer_size.ratio;
-			camera.updateProjectionMatrix();
-		}
-
-		if (!!renderer) {
-			renderer.setSize(viewer_size.width, viewer_size.height);
-			render();
-		}
-	}
-
-	/**
-	 * The user wants to move
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onMouseDown = function(evt) {
-		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
-
-	/**
-	 * The user wants to move (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onTouchStart = function(evt) {
-		var touch = evt.changedTouches[0];
-		if (touch.target.parentNode == canvas_container)
-			startMove(parseInt(touch.clientX), parseInt(touch.clientY));
-	}
-
-	/**
-	 * Initializes the movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
-	 **/
-	var startMove = function(x, y) {
-		mouse_x = x;
-		mouse_y = y;
-
-		stopAutorotate();
-
-		mousedown = true;
-	}
-
-	/**
-	 * The user wants to stop moving
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onMouseUp = function(evt) {
-		mousedown = false;
-	}
-
-	/**
-	 * The user moves the image
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onMouseMove = function(evt) {
-		evt.preventDefault();
-		move(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
-
-	/**
-	 * The user moves the image (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onTouchMove = function(evt) {
-		var touch = evt.changedTouches[0];
-		if (touch.target.parentNode == canvas_container) {
-			evt.preventDefault();
-			move(parseInt(touch.clientX), parseInt(touch.clientY));
-		}
-	}
-
-	/**
-	 * Movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
-	 **/
-	var move = function(x, y) {
-		if (mousedown) {
-			theta += (x - mouse_x) * PSV_LONG_OFFSET;
-			theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
-			phi += (y - mouse_y) * PSV_LAT_OFFSET;
-			phi = stayBetween(phi, -Math.PI / 2.0, Math.PI / 2.0)
-
-			mouse_x = x;
-			mouse_y = y;
-			render();
-		}
-	}
-
-	/**
-	 * The user wants to zoom
-	 * @param evt (Event) The event
-	 * @return (void)
-	 **/
-	var onMouseWheel = function(evt) {
-		evt.preventDefault();
-		evt.stopPropagation();
-
-		var delta = (evt.detail) ? -evt.detail : evt.wheelDelta;
-
-		if (delta != 0) {
-			var direction = parseInt(delta / Math.abs(delta));
-			zoom(zoom_lvl + direction);
-		}
-	}
-
-	/**
-	 * Zoom
-	 * @paramlevel (integer) New zoom level
-	 * @return (void)
-	 **/
-
-	var zoom = function(level) {
-		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
-
-		camera.fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
-		camera.updateProjectionMatrix();
-		render();
-
-		triggerAction('zoom-updated', zoom_lvl);
-	}
-
-	/**
-	 * Zoom (public)
-	 * @param level (integer) New zoom level
-	 * @return (void)
-	 **/
-	this.zoom = function(level) {
-		zoom(level);
-	}
-
-	/**
-	 * Zoom in
-	 * @return (void)
-	 **/
-
-	this.zoomIn = function() {
-		if (zoom_lvl < 100)
-			zoom(zoom_lvl + 1);
-	}
-
-	/**
-	 * Zoom out
-	 * @return (void)
-	 **/
-
-	this.zoomOut = function() {
-		if (zoom_lvl > 0)
-			zoom(zoom_lvl - 1);
-	}
-
-	/**
-	 * Detects whether fullscreen is enabled or not
-	 * @return (boolean) true if fullscreen is enabled, false otherwise
-	 **/
-
-	var isFullscreenEnabled = function() {
-		return (!!document.fullscreenElement || !!document.mozFullScreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement);
-	}
-
-	/**
-	 * Fullscreen state has changed
-	 * @return (void)
-	 **/
-
-	var fullscreenToggled = function() {
-		triggerAction('fullscreen-mode', isFullscreenEnabled());
-	}
-
-	/**
-	 * Enables/disables fullscreen
-	 * @return (void)
-	 **/
-	this.toggleFullscreen = function() {
-		// Switches to fullscreen mode
-		if (!isFullscreenEnabled()) {
-			if (!!container.requestFullscreen)
-				container.requestFullscreen();
-
-			else if (!!container.mozRequestFullScreen)
-				container.mozRequestFullScreen();
-
-			else if (!!container.webkitRequestFullscreen)
-				container.webkitRequestFullscreen();
-
-			else if (!!container.msRequestFullscreen)
-				container.msRequestFullscreen();
-		}
-
-		// Switches to windowed mode
-		else {
-			if (!!document.exitFullscreen)
-				document.exitFullscreen();
-
-			else if (!!document.mozCancelFullScreen)
-				document.mozCancelFullScreen();
-
-			else if (!!document.webkitExitFullscreen)
-				document.webkitExitFullscreen();
-
-			else if (!!document.msExitFullscreen)
-				document.msExitFullscreen();
-		}
-	}
-
-	/**
-	 * Sets the animation speed
-	 * @param speed (string) The speed, in radians/degrees/revolutions per second/minute
-	 * @return (void)
-	 **/
-
-	var setAnimSpeed = function(speed) {
-		speed = speed.toString().trim();
-
-		// Speed extraction
-		var speed_value = parseFloat(speed.replace(/^(-?[0-9]+(?:\.[0-9]*)?).*$/, '$1'));
-		var speed_unit = speed.replace(/^-?[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
-
-		// "per minute" -> "per second"
-		if (speed_unit.match(/(pm|per minute)$/))
-			speed_value /= 60;
-
-		var rad_per_second = 0;
-
-		// Which unit?
-		switch (speed_unit) {
-			// Revolutions per minute / second
-			case 'rpm':
-			case 'rev per minute':
-			case 'revolutions per minute':
-			case 'rps':
-			case 'rev per second':
-			case 'revolutions per second':
-				// speed * 2pi
-				rad_per_second = speed_value * 2 * Math.PI;
-				break;
-
-			// Degrees per minute / second
-			case 'dpm':
-			case 'deg per minute':
-			case 'degrees per minute':
-			case 'dps':
-			case 'deg per second':
-			case 'degrees per second':
-				// Degrees to radians (rad = deg * pi / 180)
-				rad_per_second = speed_value * Math.PI / 180;
-				break;
-
-			// Radians per minute / second
-			case 'rad per minute':
-			case 'radians per minute':
-			case 'rad per second':
-			case 'radians per second':
-				rad_per_second = speed_value;
-				break;
-
-			// Unknown unit
-			default:
-				m_anim = false;
-		}
-
-		// Theta offset
-		theta_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
-	}
-
-	/**
-	 * Sets the viewer size
-	 * @param size (Object) An object containing the wanted width and height
-	 * @return (void)
-	 **/
-
-	var setNewViewerSize = function(size) {
-		// Checks all the values
-		for (dim in size) {
-			// Only width and height matter
-			if (dim == 'width' || dim == 'height') {
-				// Size extraction
-				var size_str = size[dim].toString().trim();
-
-				var size_value = parseFloat(size_str.replace(/^([0-9]+(?:\.[0-9]*)?).*$/, '$1'));
-				var size_unit = size_str.replace(/^[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
-
-				// Only percentages and pixels are allowed
-				if (size_unit != '%')
-					size_unit = 'px';
-
-				// We're good
-				new_viewer_size[dim] = {
-						css: size_value + size_unit,
-						unit: size_unit
-					};
-			}
-		}
-	}
-
-	/**
-	 * Adds an action
-	 * @param name (string) Action name
-	 * @param f (Function) The handler function
-	 * @return (void)
-	 **/
-
-	this.addAction = function(name, f) {
-		// New action?
-		if (!(name in actions))
-			actions[name] = [];
-
-		actions[name].push(f);
-	}
-
-	/**
-	 * Triggers an action
-	 * @param name (string) Action name
-	 * @param arg (mixed) An argument to send to the handler functions
-	 * @return (void)
-	 **/
-
-	var triggerAction = function(name, arg) {
-		// Does the action have any function?
-		if ((name in actions) && actions[name].length > 0) {
-			for (var i = 0, l = actions[name].length; i < l; ++i)
-				actions[name][i](arg);
-		}
-	}
-
-	// Required parameters
-	if (args === undefined || args.panorama === undefined || args.container === undefined) {
-		console.log('PhotoSphereViewer: no value given for panorama or container');
-		return;
-	}
-
-	// Movement speed
-	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseFloat(args.long_offset) : Math.PI / 360.0;
-	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseFloat(args.lat_offset) : Math.PI / 180.0;
-
-	// Minimal and maximal fields of view in degrees
-	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
-	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
-
-	// Animation constants
-	var PSV_FRAMES_PER_SECOND = 60;
-	var PSV_ANIM_TIMEOUT = 1000 / PSV_FRAMES_PER_SECOND;
-
-	// Delay before the animation
-	var anim_delay = 2000;
-
-	if (args.time_anim !== undefined) {
-		if (typeof args.time_anim == 'number' && args.time_anim >= 0)
-			anim_delay = args.time_anim;
-
-		else
-			anim_delay = false;
-	}
-
-	// Deprecated: horizontal offset for the animation
-	var theta_offset = (args.theta_offset !== undefined) ? Math.PI / parseInt(args.theta_offset) : Math.PI / 1440;
-
-	// Horizontal animation speed
-	if (args.anim_speed !== undefined)
-		setAnimSpeed(args.anim_speed);
-	else
-		setAnimSpeed('2rpm');
-
-	// Navigation bar
-	var navbar = new PSVNavBar(this);
-
-	// Must we display the navigation bar?
-	var display_navbar = (args.navbar !== undefined) ? !!args.navbar : false;
-
-	// Style of the navigation bar
-	var navbar_style = (args.navbar_style !== undefined) ? args.navbar_style : {};
-
-	// Container
-	var container = args.container;
-
-	// Size of the viewer
-	var viewer_size, new_viewer_size = {};
-	if (args.size !== undefined)
-		setNewViewerSize(args.size);
-
-	// Some useful attributes
-	var panorama = args.panorama;
-	var root, canvas_container;
-	var renderer = null, scene = null, camera = null;
-	var phi = 0, theta = 0;
-	var zoom_lvl = 0;
-	var mousedown = false, mouse_x = 0, mouse_y = 0;
-	var autorotate_timeout = null, anim_timeout = null;
-
-	var actions = {};
-
-	// Must we read XMP data?
-	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
-
-	// Loading indicator
-	var loading_img = (args.loading_img !== undefined) ? args.loading_img : null;
-
-	// Go?
-	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
-
-	if (autoload)
-		this.load();
-}
+ */
+var PhotoSphereViewer = function(options) {
+  if (options === undefined || options.panorama === undefined || options.container === undefined) {
+    throw 'PhotoSphereViewer: no value given for panorama or container';
+  }
+
+  this.config = PSVUtils.deepmerge(PhotoSphereViewer.DEFAULTS, options);
+
+  this.config.min_fov = PSVUtils.stayBetween(this.config.min_fov, 1, 179);
+  this.config.max_fov = PSVUtils.stayBetween(this.config.max_fov, 1, 179);
+  this.config.theta_offset = Math.PI / this.config.theta_offset;
+
+  this.container = this.config.container;
+  this.navbar = null;
+  this.root = null;
+  this.canvas_container = null;
+  this.renderer = null;
+  this.scene = null;
+  this.camera = null;
+
+  this.prop = {
+    size: null,
+    phi: 0,
+    theta: 0,
+    zoom_lvl: 0,
+    mousedown: false,
+    mouse_x: 0,
+    mouse_y: 0,
+    autorotate_timeout: null,
+    anim_timeout: null,
+  };
+
+  this.actions = {};
+
+  this.setAnimSpeed(this.config.anim_speed);
+
+  if (this.config.size !== null)
+    this.setViewerSize(this.config.size);
+
+  if (this.config.autoload)
+    this.load();
+};
+
+PhotoSphereViewer.DEFAULTS = {
+  panorama: null,
+  container: null,
+  autoload: true,
+  usexmpdata: true,
+  min_fov: 30,
+  max_fov: 90,
+  long_offset: Math.PI / 360.0,
+  lat_offset: Math.PI / 180.0,
+  time_anim: 2000,
+  theta_offset: 1440,
+  anim_speed: '2rpm',
+  navbar: false,
+  navbar_style: {},
+  loading_img: null,
+  size: null,
+  fps: 60
+};
+
+/**
+ * Starts to load the panorama
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.load = function() {
+  // Loading indicator (text or image if given)
+  if (!!this.config.loading_img) {
+    var loading = document.createElement('img');
+    loading.setAttribute('src', this.config.loading_img);
+    loading.setAttribute('alt', 'Loading...');
+    this.container.appendChild(loading);
+  }
+  else
+    this.container.textContent = 'Loading...';
+
+  // Adds a new container
+  this.root = document.createElement('div');
+  this.root.style.width = '100%';
+  this.root.style.height = '100%';
+  this.root.style.position = 'relative';
+
+  // Is canvas supported?
+  if (!PSVUtils.isCanvasSupported()) {
+    this.container.textContent = 'Canvas is not supported, update your browser!';
+    return;
+  }
+
+  // Canvas container
+  this.canvas_container = document.createElement('div');
+  this.canvas_container.style.position = 'absolute';
+  this.canvas_container.style.zIndex = 0;
+  this.root.appendChild(this.canvas_container);
+
+  // Navigation bar?
+  if (this.config.navbar) {
+    this.navbar = new PSVNavBar(this, this.config.navbar_style);
+    this.root.appendChild(this.navbar.getBar());
+  }
+
+  // Adding events
+  PSVUtils.addEvent(window, 'resize', this._onResize.bind(this));
+  PSVUtils.addEvent(this.canvas_container, 'mousedown', this._onMouseDown.bind(this));
+  PSVUtils.addEvent(this.canvas_container, 'touchstart', this._onTouchStart.bind(this));
+  PSVUtils.addEvent(document, 'mouseup', this._onMouseUp.bind(this));
+  PSVUtils.addEvent(document, 'touchend', this._onMouseUp.bind(this));
+  PSVUtils.addEvent(document, 'mousemove', this._onMouseMove.bind(this));
+  PSVUtils.addEvent(document, 'touchmove', this._onTouchMove.bind(this));
+  PSVUtils.addEvent(this.canvas_container, 'mousewheel', this._onMouseWheel.bind(this));
+  PSVUtils.addEvent(this.canvas_container, 'DOMMouseScroll', this._onMouseWheel.bind(this));
+  PSVUtils.addEvent(document, 'fullscreenchange', this._fullscreenToggled.bind(this));
+  PSVUtils.addEvent(document, 'mozfullscreenchange', this._fullscreenToggled.bind(this));
+  PSVUtils.addEvent(document, 'webkitfullscreenchange', this._fullscreenToggled.bind(this));
+  PSVUtils.addEvent(document, 'MSFullscreenChange', this._fullscreenToggled.bind(this));
+
+  // First render
+  this.container.innerHTML = '';
+  this.container.appendChild(this.root);
+
+  // Current viewer size
+  this.prop.size = {
+    width: 0,
+    height: 0,
+    ratio: 0
+  };
+
+  // XMP data?
+  if (this.config.usexmpdata)
+    this.loadXMP();
+
+  else
+    this.createBuffer(false);
+};
+
+/**
+ * Loads the XMP data with AJAX
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.loadXMP = function() {
+  var xhr = null;
+  var self = this;
+
+  if (window.XMLHttpRequest)
+    xhr = new XMLHttpRequest();
+
+  else if (window.ActiveXObject) {
+    try {
+      xhr = new ActiveXObject('Msxml2.XMLHTTP');
+    }
+    catch (e) {
+      xhr = new ActiveXObject('Microsoft.XMLHTTP');
+    }
+  }
+
+  else {
+    this.container.textContent = 'XHR is not supported, update your browser!';
+    return;
+  }
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState == 4 && xhr.status == 200) {
+      // Metadata
+      var binary = xhr.responseText;
+      var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
+      var data = binary.substring(a, b);
+
+      // No data retrieved
+      if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
+        self.createBuffer(false);
+        return;
+      }
+
+      // Useful values
+      var pano_data = {
+          full_width: parseInt(PSVUtils.getAttribute(data, 'FullPanoWidthPixels')),
+          full_height: parseInt(PSVUtils.getAttribute(data, 'FullPanoHeightPixels')),
+          cropped_width: parseInt(PSVUtils.getAttribute(data, 'CroppedAreaImageWidthPixels')),
+          cropped_height: parseInt(PSVUtils.getAttribute(data, 'CroppedAreaImageHeightPixels')),
+          cropped_x: parseInt(PSVUtils.getAttribute(data, 'CroppedAreaLeftPixels')),
+          cropped_y: parseInt(PSVUtils.getAttribute(data, 'CroppedAreaTopPixels')),
+        };
+
+      self.createBuffer(pano_data);
+    }
+  };
+
+  xhr.open('GET', this.config.panorama, true);
+  xhr.send(null);
+};
+
+/**
+ * Creates an image in the right dimensions
+ * @param pano_data (mixed) An object containing the panorama XMP data (false if it there is not)
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.createBuffer = function(pano_data) {
+  var img = new Image();
+  var self = this;
+
+  img.onload = function() {
+    // No XMP data?
+    if (!pano_data) {
+      pano_data = {
+        full_width: img.width,
+        full_height: img.height,
+        cropped_width: img.width,
+        cropped_height: img.height,
+        cropped_x: 0,
+        cropped_y: 0,
+      };
+    }
+
+    // Size limit for mobile compatibility
+    var max_width = 2048;
+    if (PSVUtils.isWebGLSupported()) {
+      max_width = PSVUtils.getMaxTextureWidth();
+    }
+
+    // Buffer width (not too big)
+    var new_width = Math.min(pano_data.full_width, max_width);
+    var r = new_width / pano_data.full_width;
+
+    pano_data.full_width = new_width;
+    pano_data.cropped_width *= r;
+    pano_data.cropped_x *= r;
+    img.width = pano_data.cropped_width;
+
+    // Buffer height (proportional to the width)
+    pano_data.full_height *= r;
+    pano_data.cropped_height *= r;
+    pano_data.cropped_y *= r;
+    img.height = pano_data.cropped_height;
+
+    // Buffer creation
+    var buffer = document.createElement('canvas');
+    buffer.width = pano_data.full_width;
+    buffer.height = pano_data.full_height;
+
+    var ctx = buffer.getContext('2d');
+    ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
+
+    self.loadTexture(buffer.toDataURL('image/jpeg'));
+  };
+
+  // CORS when the panorama is not given as a base64 string
+  if (!this.config.panorama.match(/^data:image\/[a-z]+;base64/))
+    img.setAttribute('crossOrigin', 'anonymous');
+
+  img.src = this.config.panorama;
+};
+
+/**
+ * Loads the sphere texture
+ * @param path (URL) Path to the panorama
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.loadTexture = function(path) {
+  var texture = new THREE.Texture();
+  var loader = new THREE.ImageLoader();
+  var self = this;
+
+  var onLoad = function(img) {
+    texture.needsUpdate = true;
+    texture.image = img;
+
+    self.createScene(texture);
+  };
+
+  loader.load(path, onLoad);
+};
+
+/**
+ * Creates the 3D scene
+ * @param texture (THREE.Texture) The sphere texture
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.createScene = function(texture) {
+  this._onResize();
+
+  // The chosen renderer depends on whether WebGL is supported or not
+  this.renderer = (PSVUtils.isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
+  this.renderer.setSize(this.prop.size.width, this.prop.size.height);
+
+  this.scene = new THREE.Scene();
+
+  this.camera = new THREE.PerspectiveCamera(this.config.max_fov, this.prop.size.ratio, 1, 300);
+  this.camera.position.set(0, 0, 0);
+  this.scene.add(this.camera);
+
+  // Sphere
+  var geometry = new THREE.SphereGeometry(200, 32, 32);
+  var material = new THREE.MeshBasicMaterial({map: texture, overdraw: true});
+  var mesh = new THREE.Mesh(geometry, material);
+  mesh.scale.x = -1;
+  this.scene.add(mesh);
+
+  var canvas = this.renderer.domElement;
+  canvas.style.display = 'block';
+
+  this.canvas_container.appendChild(canvas);
+  this.render();
+
+  // Animation?
+  if (this.config.time_anim !== false)
+    this.prop.anim_timeout = setTimeout(this.startAutorotate.bind(this), this.config.time_anim);
+};
+
+/**
+ * Renders an image
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.render = function() {
+  var point = new THREE.Vector3();
+  point.setX(Math.cos(this.prop.phi) * Math.sin(this.prop.theta));
+  point.setY(Math.sin(this.prop.phi));
+  point.setZ(Math.cos(this.prop.phi) * Math.cos(this.prop.theta));
+
+  this.camera.lookAt(point);
+  this.renderer.render(this.scene, this.camera);
+};
+
+/**
+ * Automatically rotates the panorama
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._autorotate = function() {
+  // Returns to the equator (phi = 0)
+  this.prop.phi -= this.prop.phi / 200;
+
+  // Rotates the sphere
+  this.prop.theta += this.config.theta_offset;
+  this.prop.theta -= Math.floor(this.prop.theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
+
+  this.render();
+  this.prop.autorotate_timeout = setTimeout(this._autorotate.bind(this), 1000 / this.config.fps);
+};
+
+/**
+ * Starts the autorotate animation
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.startAutorotate = function() {
+  this._autorotate();
+  this.triggerAction('autorotate', true);
+};
+
+/**
+ * Stops the autorotate animation
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.stopAutorotate = function() {
+  clearTimeout(this.prop.anim_timeout);
+  this.prop.anim_timeout = null;
+
+  clearTimeout(this.prop.autorotate_timeout);
+  this.prop.autorotate_timeout = null;
+
+  this.triggerAction('autorotate', false);
+};
+
+/**
+ * Launches/stops the autorotate animation
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.toggleAutorotate = function() {
+  clearTimeout(this.prop.anim_timeout);
+
+  if (!!this.prop.autorotate_timeout)
+    this.stopAutorotate();
+
+  else
+    this.startAutorotate();
+};
+
+/**
+ * Resizes the canvas when the window is resized
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onResize = function() {
+  if (this.container.clientWidth != this.prop.size.width || this.container.clientHeight != this.prop.size.height) {
+    this.resize({
+      width: this.container.clientWidth,
+      height: this.container.clientHeight
+    });
+  }
+};
+
+/**
+ * Resizes the canvas
+ * @param size (Object) New dimensions
+ * - width (integer) (optional) (previous value) The new canvas width
+ * - height (integer) (optional) (previous valus) The new canvas height
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.resize = function(size) {
+  this.prop.size.width = (size.width !== undefined) ? parseInt(size.width) : this.prop.size.width;
+  this.prop.size.height = (size.height !== undefined) ? parseInt(size.height) : this.prop.size.height;
+  this.prop.size.ratio = this.prop.size.width / this.prop.size.height;
+
+  if (!!this.camera) {
+    this.camera.aspect = this.prop.size.ratio;
+    this.camera.updateProjectionMatrix();
+  }
+
+  if (!!this.renderer) {
+    this.renderer.setSize(this.prop.size.width, this.prop.size.height);
+    this.render();
+  }
+};
+
+/**
+ * The user wants to move
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onMouseDown = function(evt) {
+  this._startMove(parseInt(evt.clientX), parseInt(evt.clientY));
+};
+
+/**
+ * The user wants to move (mobile version)
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onTouchStart = function(evt) {
+  var touch = evt.changedTouches[0];
+  if (touch.target.parentNode == this.canvas_container)
+    this._startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+};
+
+/**
+ * Initializes the movement
+ * @param x (integer) Horizontal coordinate
+ * @param y (integer) Vertical coordinate
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._startMove = function(x, y) {
+  this.prop.mouse_x = x;
+  this.prop.mouse_y = y;
+
+  this.stopAutorotate();
+
+  this.prop.mousedown = true;
+};
+
+/**
+ * The user wants to stop moving
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onMouseUp = function(evt) {
+  this.prop.mousedown = false;
+};
+
+/**
+ * The user moves the image
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onMouseMove = function(evt) {
+  evt.preventDefault();
+  this._move(parseInt(evt.clientX), parseInt(evt.clientY));
+};
+
+/**
+ * The user moves the image (mobile version)
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onTouchMove = function(evt) {
+  var touch = evt.changedTouches[0];
+  if (touch.target.parentNode == this.canvas_container) {
+    evt.preventDefault();
+    this._move(parseInt(touch.clientX), parseInt(touch.clientY));
+  }
+};
+
+/**
+ * Movement
+ * @param x (integer) Horizontal coordinate
+ * @param y (integer) Vertical coordinate
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._move = function(x, y) {
+  if (this.prop.mousedown) {
+    this.rotate(
+      this.prop.theta + (x - this.prop.mouse_x) * this.config.long_offset,
+      this.prop.phi + (y - this.prop.mouse_y) * this.config.lat_offset
+    );
+
+    this.prop.mouse_x = x;
+    this.prop.mouse_y = y;
+  }
+};
+
+/**
+ * Rotate the camera
+ * @param x (integer) Horizontal angle (rad)
+ * @param y (integer) Vertical angle (rad)
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.rotate = function(t, p) {
+  this.prop.theta = t;
+  this.prop.phi = PSVUtils.stayBetween(p, -Math.PI / 2.0, Math.PI / 2.0);
+
+  this.render();
+};
+
+/**
+ * The user wants to zoom
+ * @param evt (Event) The event
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._onMouseWheel = function(evt) {
+  evt.preventDefault();
+  evt.stopPropagation();
+
+  var delta = (evt.detail) ? -evt.detail : evt.wheelDelta;
+
+  if (delta !== 0) {
+    var direction = parseInt(delta / Math.abs(delta));
+    this.zoom(this.prop.zoom_lvl + direction);
+  }
+};
+
+/**
+ * Zoom
+ * @paramlevel (integer) New zoom level
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.zoom = function(level) {
+  this.prop.zoom_lvl = PSVUtils.stayBetween(parseInt(Math.round(level)), 0, 100);
+
+  this.camera.fov = this.config.max_fov + (this.prop.zoom_lvl / 100) * (this.config.min_fov - this.config.max_fov);
+  this.camera.updateProjectionMatrix();
+  this.render();
+
+  this.triggerAction('zoom-updated', this.prop.zoom_lvl);
+};
+
+/**
+ * Zoom in
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.zoomIn = function() {
+  if (this.prop.zoom_lvl < 100)
+    this.zoom(this.prop.zoom_lvl + 1);
+};
+
+/**
+ * Zoom out
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.zoomOut = function() {
+  if (this.prop.zoom_lvl > 0)
+    this.zoom(this.prop.zoom_lvl - 1);
+};
+
+/**
+ * Fullscreen state has changed
+ * @return (void)
+ */
+PhotoSphereViewer.prototype._fullscreenToggled = function() {
+  this.triggerAction('fullscreen-mode', PSVUtils.isFullscreenEnabled());
+};
+
+/**
+ * Enables/disables fullscreen
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.toggleFullscreen = function() {
+  // Switches to fullscreen mode
+  if (!PSVUtils.isFullscreenEnabled()) {
+    if (!!this.container.requestFullscreen)
+      this.container.requestFullscreen();
+
+    else if (!!this.container.mozRequestFullScreen)
+      this.container.mozRequestFullScreen();
+
+    else if (!!this.container.webkitRequestFullscreen)
+      this.container.webkitRequestFullscreen();
+
+    else if (!!this.container.msRequestFullscreen)
+      this.container.msRequestFullscreen();
+  }
+
+  // Switches to windowed mode
+  else {
+    if (!!document.exitFullscreen)
+      document.exitFullscreen();
+
+    else if (!!document.mozCancelFullScreen)
+      document.mozCancelFullScreen();
+
+    else if (!!document.webkitExitFullscreen)
+      document.webkitExitFullscreen();
+
+    else if (!!document.msExitFullscreen)
+      document.msExitFullscreen();
+  }
+};
+
+/**
+ * Sets the animation speed
+ * @param speed (string) The speed, in radians/degrees/revolutions per second/minute
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.setAnimSpeed = function(speed) {
+  speed = speed.toString().trim();
+
+  // Speed extraction
+  var speed_value = parseFloat(speed.replace(/^(-?[0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+  var speed_unit = speed.replace(/^-?[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+  // "per minute" -> "per second"
+  if (speed_unit.match(/(pm|per minute)$/))
+    speed_value /= 60;
+
+  var rad_per_second = 0;
+
+  // Which unit?
+  switch (speed_unit) {
+    // Revolutions per minute / second
+    case 'rpm':
+    case 'rev per minute':
+    case 'revolutions per minute':
+    case 'rps':
+    case 'rev per second':
+    case 'revolutions per second':
+      // speed * 2pi
+      rad_per_second = speed_value * 2 * Math.PI;
+      break;
+
+    // Degrees per minute / second
+    case 'dpm':
+    case 'deg per minute':
+    case 'degrees per minute':
+    case 'dps':
+    case 'deg per second':
+    case 'degrees per second':
+      // Degrees to radians (rad = deg * pi / 180)
+      rad_per_second = speed_value * Math.PI / 180;
+      break;
+
+    // Radians per minute / second
+    case 'rad per minute':
+    case 'radians per minute':
+    case 'rad per second':
+    case 'radians per second':
+      rad_per_second = speed_value;
+      break;
+
+    // Unknown unit
+    default:
+      m_anim = false;
+  }
+
+  // Theta offset
+  this.config.theta_offset = rad_per_second / this.config.fps;
+};
+
+/**
+ * Sets the viewer size
+ * @param size (Object) An object containing the wanted width and height
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.setViewerSize = function(size) {
+  // Checks all the values
+  for (var dim in size) {
+    // Only width and height matter
+    if (dim == 'width' || dim == 'height') {
+      // Size extraction
+      var size_str = size[dim].toString().trim();
+
+      var size_value = parseFloat(size_str.replace(/^([0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+      var size_unit = size_str.replace(/^[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+      // Only percentages and pixels are allowed
+      if (size_unit != '%')
+        size_unit = 'px';
+
+      // We're good
+      this.container.style[dim] = size_value + size_unit;
+    }
+  }
+};
+
+/**
+ * Adds an action
+ * @param name (string) Action name
+ * @param f (Function) The handler function
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.addAction = function(name, f) {
+  // New action?
+  if (!(name in this.actions))
+    this.actions[name] = [];
+
+  this.actions[name].push(f);
+};
+
+/**
+ * Triggers an action
+ * @param name (string) Action name
+ * @param arg (mixed) An argument to send to the handler functions
+ * @return (void)
+ */
+PhotoSphereViewer.prototype.triggerAction = function(name, arg) {
+  // Does the action have any function?
+  if ((name in this.actions) && this.actions[name].length > 0) {
+    for (var i = 0, l = this.actions[name].length; i < l; ++i)
+      this.actions[name][i](arg);
+  }
+};

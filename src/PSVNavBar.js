@@ -1,168 +1,85 @@
-/*
-* Photo Sphere Viewer v2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
-
 /**
  * Navigation bar class
  * @param psv (PhotoSphereViewer) A PhotoSphereViewer object
- **/
+ */
+var PSVNavBar = function(psv, style) {
+  this.style = PSVUtils.deepmerge(PSVNavBar.DEFAULTS, style);
+  this.psv = psv;
+  this.container = null;
+  this.arrows = null;
+  this.autorotate = null;
+  this.zoom = null;
+  this.fullscreen = null;
 
-var PSVNavBar = function(psv) {
-	/**
-	 * Checks if a value exists in an array
-	 * @param searched (mixed) The searched value
-	 * @param array (Array) The array
-	 * @return (boolean) true if the value exists in the array, false otherwise
-	 **/
+  this.create();
+};
 
-	var inArray = function(searched, array) {
-		for (var i = 0, l = array.length; i < l; ++i) {
-			if (array[i] == searched)
-				return true;
-		}
+PSVNavBar.DEFAULTS = {
+  // Bar background
+  backgroundColor: 'rgba(61, 61, 61, 0.5)',
 
-		return false;
-	}
+  // Buttons foreground color
+  buttonsColor: 'rgba(255, 255, 255, 0.7)',
 
-	/**
-	 * Checks if a property is valid
-	 * @param property (string) The property
-	 * @param value (mixed) The value to check
-	 * @return (boolean) true if the value is valid, false otherwise
-	 **/
+  // Buttons background color
+  buttonsBackgroundColor: 'transparent',
 
-	var checkValue = function(property, value) {
-		return (
-				// Color
-				(
-					inArray(property, colors) && (typeof value == 'string') &&
-					(
-						value == 'transparent' ||
-						!!value.match(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/) ||
-						!!value.match(/^rgb\((1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])(,\s*(1?[0-9]{1,2}|2[0-4][0-9]|25[0-5])){2}\)$/) ||
-						!!value.match(/^rgba\(((1?[0-9]{1,2}|2[0-4][0-9]|25[0-5]),\s*){3}(0(\.[0-9]*)?|1)\)$/)
-					)
-				) ||
+  // Buttons background color when active
+  activeButtonsBackgroundColor: 'rgba(255, 255, 255, 0.1)',
 
-				// Number
-				(inArray(property, numbers) && !isNaN(parseFloat(value)) && isFinite(value) && value >= 0)
-			);
-	}
+  // Buttons height in pixels
+  buttonsHeight: 20,
 
-	/**
-	 * Sets the style
-	 * @param new_style (object) The properties to change
-	 * @return (void)
-	 **/
+  // Autorotate icon thickness in pixels
+  autorotateThickness: 1,
 
-	this.setStyle = function(new_style) {
-		// Properties to change
-		for (property in new_style) {
-			// Is this property a property we'll use?
-			if ((property in style) && checkValue(property, new_style[property]))
-				style[property] = new_style[property];
-		}
-	}
+  // Zoom range width in pixels
+  zoomRangeWidth: 50,
 
-	/**
-	 * Creates the elements
-	 * @return (void)
-	 **/
+  // Zoom range thickness in pixels
+  zoomRangeThickness: 1,
 
-	this.create = function() {
-		// Container
-		container = document.createElement('div');
-		container.style.backgroundColor = style.backgroundColor;
+  // Zoom range disk diameter in pixels
+  zoomRangeDisk: 7,
 
-		container.style.position = 'absolute';
-		container.style.zIndex = 10;
-		container.style.bottom = 0;
-		container.style.width = '100%';
+  // Fullscreen icon ratio
+  fullscreenRatio: 4 / 3,
 
-		// Autorotate button
-		autorotate = new PSVNavBarButton(psv, 'autorotate', style);
-		container.appendChild(autorotate.getButton());
+  // Fullscreen icon thickness in pixels
+  fullscreenThickness: 2
+};
 
-		// Zoom buttons
-		zoom = new PSVNavBarButton(psv, 'zoom', style);
-		container.appendChild(zoom.getButton());
+/**
+ * Creates the elements
+ * @return (void)
+ */
+PSVNavBar.prototype.create = function() {
+  // Container
+  this.container = document.createElement('div');
+  this.container.style.backgroundColor = this.style.backgroundColor;
 
-		// Fullscreen button
-		fullscreen = new PSVNavBarButton(psv, 'fullscreen', style);
-		container.appendChild(fullscreen.getButton());
-	}
+  this.container.style.position = 'absolute';
+  this.container.style.zIndex = 10;
+  this.container.style.bottom = 0;
+  this.container.style.width = '100%';
 
-	/**
-	 * Returns the bar itself
-	 * @return (HTMLElement) The bar
-	 **/
+  // Autorotate button
+  this.autorotate = new PSVNavBarAutorotateButton(this.psv, this.style);
+  this.container.appendChild(this.autorotate.getButton());
 
-	this.getBar = function() {
-		return container;
-	}
+  // Zoom buttons
+  this.zoom = new PSVNavBarZoomButton(this.psv, this.style);
+  this.container.appendChild(this.zoom.getButton());
 
-	// Default style
-	var style = {
-			// Bar background
-			backgroundColor: 'rgba(61, 61, 61, 0.5)',
+  // Fullscreen button
+  this.fullscreen = new PSVNavBarFullscreenButton(this.psv, this.style);
+  this.container.appendChild(this.fullscreen.getButton());
+};
 
-			// Buttons foreground color
-			buttonsColor: 'rgba(255, 255, 255, 0.7)',
-
-			// Buttons background color
-			buttonsBackgroundColor: 'transparent',
-
-			// Buttons background color when active
-			activeButtonsBackgroundColor: 'rgba(255, 255, 255, 0.1)',
-
-			// Buttons height in pixels
-			buttonsHeight: 20,
-
-			// Autorotate icon thickness in pixels
-			autorotateThickness: 1,
-
-			// Zoom range width in pixels
-			zoomRangeWidth: 50,
-
-			// Zoom range thickness in pixels
-			zoomRangeThickness: 1,
-
-			// Zoom range disk diameter in pixels
-			zoomRangeDisk: 7,
-
-			// Fullscreen icon ratio
-			fullscreenRatio: 4 / 3,
-
-			// Fullscreen icon thickness in pixels
-			fullscreenThickness: 2
-		};
-
-	// Properties types
-	var colors = ['backgroundColor', 'buttonsColor', 'buttonsBackgroundColor', 'activeButtonsBackgroundColor'];
-	var numbers = ['buttonsHeight', 'autorotateThickness', 'zoomRangeWidth', 'zoomRangeThickness', 'zoomRangeDisk', 'fullscreenRatio', 'fullscreenThickness'];
-
-	// Some useful attributes
-	var container;
-	var arrows, autorotate, zoom, fullscreen;
-}
+/**
+ * Returns the bar itself
+ * @return (HTMLElement) The bar
+ */
+PSVNavBar.prototype.getBar = function() {
+  return this.container;
+};
