@@ -54,7 +54,7 @@ function upload() {
 				navbar: true,
 
 				// Set max tilt angle
-				tiltUpMax: 40,
+				tilt_up_max: 40,
 			
 				// Resize the panorama
 				size: {
