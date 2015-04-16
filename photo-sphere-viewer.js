@@ -91,6 +91,21 @@ var PhotoSphereViewer = function(args) {
 		return Math.max(min, Math.min(max, x));
 	}
 
+	 /**
+     * Set maximum up and down angle
+     * @param phi
+     * @returns phi
+     */
+	 
+    var setTiltAngle = function (phi){
+        if (phi > TILT_UP_MAX) {
+            phi = TILT_UP_MAX;
+        } else if (phi < TILT_DOWN_MAX) {
+            phi = TILT_DOWN_MAX;
+        }
+        return phi;
+    };
+
 	/**
 	 * Starts to load the panorama
 	 * @return (void)
@@ -558,7 +573,7 @@ var PhotoSphereViewer = function(args) {
 			theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
 			phi += (y - mouse_y) * PSV_LAT_OFFSET;
 			phi = stayBetween(phi, -Math.PI / 2.0, Math.PI / 2.0)
-
+			phi = setTiltAngle(phi);
 			mouse_x = x;
 			mouse_y = y;
 			render();
@@ -814,6 +829,10 @@ var PhotoSphereViewer = function(args) {
 	// Minimal and maximal fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
+	
+	// Maximum tilt up / down angle
+    var TILT_UP_MAX = (args.tiltUpMax !== undefined) ? (Math.PI / 180) * args.tiltUpMax : Math.PI/2.0;
+    var TILT_DOWN_MAX = (args.tiltDownMax !== undefined) ? -(Math.PI / 180) * args.tiltDownMax : -Math.PI/2.0; 
 
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;

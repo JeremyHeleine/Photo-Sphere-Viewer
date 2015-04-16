@@ -53,6 +53,9 @@ function upload() {
 				// Display the navigation bar
 				navbar: true,
 
+				// Set max tilt angle
+				tiltUpMax: 40,
+			
 				// Resize the panorama
 				size: {
 						width: '100%',
