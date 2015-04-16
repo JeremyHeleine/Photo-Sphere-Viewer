@@ -41,8 +41,8 @@
  * - navbar_style (Object) (optional) ({}) Style of the navigation bar
  * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
  * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
- * - tilt_up_max (integer) (optional) (90) The maximum tilt up angle between 0 and 90
- * - tilt_down_max (integer) (optional) (90) The maximum tilt down angle between 0 and 90
+ * - tilt_up_max (number) (optional) (90) The maximum tilt up angle between 0 and 90
+ * - tilt_down_max (number) (optional) (90) The maximum tilt down angle between 0 and 90
  **/
 
 var PhotoSphereViewer = function(args) {
