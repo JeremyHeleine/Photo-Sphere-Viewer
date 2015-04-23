@@ -41,6 +41,8 @@
  * - navbar_style (Object) (optional) ({}) Style of the navigation bar
  * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
  * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
+ * - tilt_up_max (number) (optional) (90) The maximum tilt up angle between 0 and 90
+ * - tilt_down_max (number) (optional) (90) The maximum tilt down angle between 0 and 90
  **/
 
 var PhotoSphereViewer = function(args) {
@@ -90,6 +92,21 @@ var PhotoSphereViewer = function(args) {
 	var stayBetween = function(x, min, max) {
 		return Math.max(min, Math.min(max, x));
 	}
+
+	 /**
+     * Set maximum tilt up and down angle
+     * @param phi
+     * @returns phi
+     */
+	 
+    var setTiltAngle = function (phi){
+        if (phi > TILT_UP_MAX) {
+            phi = TILT_UP_MAX;
+        } else if (phi < TILT_DOWN_MAX) {
+            phi = TILT_DOWN_MAX;
+        }
+        return phi;
+    };
 
 	/**
 	 * Starts to load the panorama
@@ -558,7 +575,7 @@ var PhotoSphereViewer = function(args) {
 			theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
 			phi += (y - mouse_y) * PSV_LAT_OFFSET;
 			phi = stayBetween(phi, -Math.PI / 2.0, Math.PI / 2.0)
-
+			phi = setTiltAngle(phi);
 			mouse_x = x;
 			mouse_y = y;
 			render();
@@ -814,6 +831,10 @@ var PhotoSphereViewer = function(args) {
 	// Minimal and maximal fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
+	
+	// Maximum tilt up / down angle
+    var TILT_UP_MAX = (args.tilt_up_max !== undefined) ? (Math.PI / 180) * args.tilt_up_max : Math.PI/2.0;
+    var TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -(Math.PI / 180) * args.tilt_down_max : -Math.PI/2.0; 
 
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;
