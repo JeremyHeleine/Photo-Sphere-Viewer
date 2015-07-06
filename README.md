@@ -13,8 +13,12 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
     * `container` (required): the `div` in which the panorama will be displayed.
     * `autoload` (optional, default to `true`): `true` to automatically load the panorama, `false` to load it later (with the `.load()` method).
     * `usexmpdata` (optional, default to `true`): `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary.
+    * `default_position` (optional, default to `{}`) Defines the default position, the first point seen by the user (e.g. `{long: Math.PI, lat: Math.PI/2}`).
     * `min_fov` (optional, default to `30`): the minimal field of view, in degrees, between 1 and 179.
     * `max_fov` (optional, default to `90`): the maximal field of view, in degrees, between 1 and 179.
+    * `tilt_up_max` (optional, default to `Math.PI/2`) The maximal tilt up angle, in radians.
+    * `tilt_down_max` (optional, default to `Math.PI/2`) The maximal tilt down angle, in radians.
+    * `zoom_level` (optional, default to `0`) The default zoom level, between 0 and 100.
     * `long_offset` (optional, default to `PI/360`): the longitude to travel per pixel moved by mouse/touch.
     * `lat_offset` (optional, default to `PI/180`): the latitude to travel per pixel moved by mouse/touch.
     * `time_anim` (optional, default to `2000`): the panorama will be automatically animated after `time_anim` milliseconds (indicate `false` to deactivate it).
@@ -37,6 +41,7 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
         Colors can be in `rgb()`, `rgba()` or hexadecimal format, and the keyword `transparent` is accepted.
     * `loading_img` (optional, default to `null`): the path to the image shown during the loading.
     * `size` (optional, default to `null`): the final size of the panorama container (e.g. `{width: 500, height: 300}`).
+    * `onready` (optional, default to `null`) Function called once the panorama is ready and the first image is displayed.
 
 You can find a basic example of use in the file `example.html`. The `example1.html` is a more complete (and more interesting) example.
 

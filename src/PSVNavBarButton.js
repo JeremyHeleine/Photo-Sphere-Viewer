@@ -1,5 +1,5 @@
 /*
-* Photo Sphere Viewer v2.1
+* Photo Sphere Viewer v2.2
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
 * Copyright (c) 2014,2015 Jérémy Heleine
@@ -112,10 +112,11 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(zoom_minus);
 
         		// Zoom range
-        		var zoom_range_bg = document.createElement('div');
+        		zoom_range_bg = document.createElement('div');
         		zoom_range_bg.style.cssFloat = 'left';
         		zoom_range_bg.style.padding = (10 + (style.buttonsHeight - style.zoomRangeThickness) / 2) + 'px 5px';
         		zoom_range_bg.style.backgroundColor = style.buttonsBackgroundColor;
+                zoom_range_bg.style.cursor = 'pointer';
                 button.appendChild(zoom_range_bg);
 
         		zoom_range = document.createElement('div');
@@ -123,7 +124,6 @@ var PSVNavBarButton = function(psv, type, style) {
         		zoom_range.style.height = style.zoomRangeThickness + 'px';
         		zoom_range.style.backgroundColor = style.buttonsColor;
         		zoom_range.style.position = 'relative';
-        		zoom_range.style.cursor = 'pointer';
         		zoom_range_bg.appendChild(zoom_range);
 
         		zoom_value = document.createElement('div');
@@ -136,8 +136,8 @@ var PSVNavBarButton = function(psv, type, style) {
         		zoom_value.style.backgroundColor = style.buttonsColor;
 
                 psv.addAction('zoom-updated', moveZoomValue);
-                addEvent(zoom_range, 'mousedown', initZoomChangeWithMouse);
-                addEvent(zoom_range, 'touchstart', initZoomChangeByTouch);
+                addEvent(zoom_range_bg, 'mousedown', initZoomChangeWithMouse);
+                addEvent(zoom_range_bg, 'touchstart', initZoomChangeByTouch);
                 addEvent(document, 'mousemove', changeZoomWithMouse);
                 addEvent(document, 'touchmove', changeZoomByTouch);
                 addEvent(document, 'mouseup', stopZoomChange);
@@ -284,8 +284,8 @@ var PSVNavBarButton = function(psv, type, style) {
      **/
 
     var initZoomChangeByTouch = function(evt) {
-        var touch = evt.changedTouches[0];
-        if (touch.target == zoom_value || touch.target == zoom_value)
+        var touch = evt.touches[0];
+        if (touch.target == zoom_range_bg || touch.target == zoom_range || touch.target == zoom_value)
             initZoomChange(parseInt(touch.clientX));
     }
 
@@ -328,8 +328,8 @@ var PSVNavBarButton = function(psv, type, style) {
      **/
 
     var changeZoomByTouch = function(evt) {
-        var touch = evt.changedTouches[0];
-        if (touch.target == zoom_range || touch.target == zoom_value) {
+        var touch = evt.touches[0];
+        if (touch.target == zoom_range_bg || touch.target == zoom_range || touch.target == zoom_value) {
             evt.preventDefault();
             changeZoom(parseInt(touch.clientX));
         }
@@ -350,7 +350,7 @@ var PSVNavBarButton = function(psv, type, style) {
     }
 
     // Some useful attributes
-    var zoom_range, zoom_value;
+    var zoom_range_bg, zoom_range, zoom_value;
     var mousedown = false;
 
     // Create the button

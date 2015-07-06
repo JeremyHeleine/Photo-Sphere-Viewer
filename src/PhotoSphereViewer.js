@@ -1,5 +1,5 @@
 /*
-* Photo Sphere Viewer v2.1
+* Photo Sphere Viewer v2.2
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
 * Copyright (c) 2014,2015 Jérémy Heleine
@@ -30,8 +30,12 @@
  * - container (HTMLElement) Panorama container (should be a div or equivalent)
  * - autoload (boolean) (optional) (true) true to automatically load the panorama, false to load it later (with the .load() method)
  * - usexmpdata (boolean) (optional) (true) true if Photo Sphere Viewer must read XMP data, false if it is not necessary
+ * - default_position (Object) (optional) ({}) Defines the default position, the first point seen by the user (e.g. {long: Math.PI, lat: Math.PI/2})
  * - min_fov (number) (optional) (30) The minimal field of view, in degrees, between 1 and 179
  * - max_fov (number) (optional) (90) The maximal field of view, in degrees, between 1 and 179
+ * - tilt_up_max (number) (optional) (Math.PI/2) The maximal tilt up angle, in radians
+ * - tilt_down_max (number) (optional) (Math.PI/2) The maximal tilt down angle, in radians
+ * - zoom_level (number) (optional) (0) The default zoom level, between 0 and 100
  * - long_offset (number) (optional) (PI/360) The longitude to travel per pixel moved by mouse/touch
  * - lat_offset (number) (optional) (PI/180) The latitude to travel per pixel moved by mouse/touch
  * - time_anim (integer) (optional) (2000) Delay before automatically animating the panorama in milliseconds, false to not animate
@@ -41,6 +45,7 @@
  * - navbar_style (Object) (optional) ({}) Style of the navigation bar
  * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
  * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
+ * - onready (Function) (optional) (null) Function called once the panorama is ready and the first image is displayed
  **/
 
 var PhotoSphereViewer = function(args) {
@@ -89,6 +94,31 @@ var PhotoSphereViewer = function(args) {
 
 	var stayBetween = function(x, min, max) {
 		return Math.max(min, Math.min(max, x));
+	}
+
+	/**
+	 * Calculates the distance between two points (square of the distance is enough)
+	 * @param x1 (number) Horizontal coordinate (first point)
+	 * @param y1 (number) Vertical coordinate (first point)
+	 * @param x2 (number) Horizontal coordinate (second point)
+	 * @param y2 (number) Vertical coordinate (second point)
+	 * @return (number) Squar of the wanted distance
+	 **/
+
+	var dist = function(x1, y1, x2, y2) {
+		var x = x2 - x1;
+		var y = y2 - y1;
+		return x*x + y*y;
+	}
+
+	/**
+	 * Returns the measure of an angle (between 0 and 2π)
+	 * @param angle (number) The angle to reduce
+	 * @return (number) The wanted measure
+	 **/
+
+	var getAngleMeasure = function(angle) {
+		return angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
 	}
 
 	/**
@@ -296,6 +326,7 @@ var PhotoSphereViewer = function(args) {
 	 * @param texture (THREE.Texture) The sphere texture
 	 * @return (void)
 	 **/
+
 	var createScene = function(texture) {
 		// New size?
 		if (new_viewer_size.width !== undefined)
@@ -304,7 +335,7 @@ var PhotoSphereViewer = function(args) {
 		if (new_viewer_size.height !== undefined)
 			container.style.height = new_viewer_size.height.css;
 
-		onResize();
+		fitToContainer();
 
 		// The chosen renderer depends on whether WebGL is supported or not
 		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
@@ -337,7 +368,8 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		// Adding events
-		addEvent(window, 'resize', onResize);
+		addEvent(window, 'resize', fitToContainer);
+
 		addEvent(canvas_container, 'mousedown', onMouseDown);
 		addEvent(canvas_container, 'touchstart', onTouchStart);
 		addEvent(document, 'mouseup', onMouseUp);
@@ -346,6 +378,7 @@ var PhotoSphereViewer = function(args) {
 		addEvent(document, 'touchmove', onTouchMove);
 		addEvent(canvas_container, 'mousewheel', onMouseWheel);
 		addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
 		addEvent(document, 'mozfullscreenchange', fullscreenToggled);
 		addEvent(document, 'webkitfullscreenchange', fullscreenToggled);
@@ -361,19 +394,27 @@ var PhotoSphereViewer = function(args) {
 		canvas_container.appendChild(canvas);
 		render();
 
+		// Zoom?
+		if (zoom_lvl > 0)
+			zoom(zoom_lvl);
+
 		// Animation?
 		anim();
+
+		// Panorama is ready
+		triggerAction('ready');
 	}
 
 	/**
 	* Renders an image
 	* @return (void)
 	**/
+
 	var render = function() {
 		var point = new THREE.Vector3();
-		point.setX(Math.cos(phi) * Math.sin(theta));
-		point.setY(Math.sin(phi));
-		point.setZ(Math.cos(phi) * Math.cos(theta));
+		point.setX(Math.cos(lat) * Math.sin(long));
+		point.setY(Math.sin(lat));
+		point.setZ(Math.cos(lat) * Math.cos(long));
 
 		camera.lookAt(point);
 		renderer.render(scene, camera);
@@ -383,6 +424,7 @@ var PhotoSphereViewer = function(args) {
 	* Automatically animates the panorama
 	* @return (void)
 	**/
+
 	var anim = function() {
 		if (anim_delay !== false)
 			anim_timeout = setTimeout(startAutorotate, anim_delay);
@@ -392,13 +434,14 @@ var PhotoSphereViewer = function(args) {
 	* Automatically rotates the panorama
 	* @return (void)
 	**/
+
 	var autorotate = function() {
-		// Returns to the equator (phi = 0)
-		phi -= phi / 200;
+		// Returns to the equator (lat = 0)
+		lat -= lat / 200;
 
 		// Rotates the sphere
-		theta += theta_offset;
-		theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
+		long += long_offset;
+		long -= Math.floor(long / (2.0 * Math.PI)) * 2.0 * Math.PI;
 
 		render();
 		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
@@ -418,6 +461,7 @@ var PhotoSphereViewer = function(args) {
 	 * Stops the autorotate animation
 	 * @return (void)
 	 **/
+
 	var stopAutorotate = function() {
 		clearTimeout(anim_timeout);
 		anim_timeout = null;
@@ -432,6 +476,7 @@ var PhotoSphereViewer = function(args) {
 	 * Launches/stops the autorotate animation
 	 * @return (void)
 	 **/
+
 	this.toggleAutorotate = function() {
 		clearTimeout(anim_timeout);
 
@@ -443,15 +488,16 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	/**
-	 * Resizes the canvas when the window is resized
+	 * Resizes the canvas to make it fit the container
 	 * @return (void)
 	 **/
-	var onResize = function() {
+
+	var fitToContainer = function() {
 		if (container.clientWidth != viewer_size.width || container.clientHeight != viewer_size.height) {
 			resize({
-					width: container.clientWidth,
-					height: container.clientHeight
-				});
+				width: container.clientWidth,
+				height: container.clientHeight
+			});
 		}
 	}
 
@@ -463,7 +509,7 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 
-	var resize = function(size) {
+	resize = function(size) {
 		viewer_size.width = (size.width !== undefined) ? parseInt(size.width) : viewer_size.width;
 		viewer_size.height = (size.height !== undefined) ? parseInt(size.height) : viewer_size.height;
 		viewer_size.ratio = viewer_size.width / viewer_size.height;
@@ -484,19 +530,32 @@ var PhotoSphereViewer = function(args) {
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onMouseDown = function(evt) {
 		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
 	}
 
 	/**
-	 * The user wants to move (mobile version)
+	 * The user wants to move or to zoom (mobile version)
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onTouchStart = function(evt) {
-		var touch = evt.changedTouches[0];
-		if (touch.target.parentNode == canvas_container)
-			startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+		// Move
+		if (evt.touches.length == 1) {
+			var touch = evt.touches[0];
+			if (touch.target.parentNode == canvas_container)
+				startMove(parseInt(touch.clientX), parseInt(touch.clientY));
+		}
+
+		// Zoom
+		else if (evt.touches.length == 2) {
+			onMouseUp();
+
+			if (evt.touches[0].target.parentNode == canvas_container && evt.touches[1].target.parentNode == canvas_container)
+				startTouchZoom(dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY));
+		}
 	}
 
 	/**
@@ -505,6 +564,7 @@ var PhotoSphereViewer = function(args) {
 	 * @param y (integer) Vertical coordinate
 	 * @return (void)
 	 **/
+
 	var startMove = function(x, y) {
 		mouse_x = x;
 		mouse_y = y;
@@ -515,12 +575,26 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	/**
-	 * The user wants to stop moving
+	 * Initializes the "pinch to zoom" action
+	 * @param d (number) Square of the distance between the two fingers
+	 * @return (void)
+	 **/
+
+	var startTouchZoom = function(d) {
+		touchzoom_dist = d;
+
+		touchzoom = true;
+	}
+
+	/**
+	 * The user wants to stop moving (or stop zooming with their finger)
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onMouseUp = function(evt) {
 		mousedown = false;
+		touchzoom = false;
 	}
 
 	/**
@@ -528,6 +602,7 @@ var PhotoSphereViewer = function(args) {
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onMouseMove = function(evt) {
 		evt.preventDefault();
 		move(parseInt(evt.clientX), parseInt(evt.clientY));
@@ -538,11 +613,33 @@ var PhotoSphereViewer = function(args) {
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onTouchMove = function(evt) {
-		var touch = evt.changedTouches[0];
-		if (touch.target.parentNode == canvas_container) {
-			evt.preventDefault();
-			move(parseInt(touch.clientX), parseInt(touch.clientY));
+		// Move
+		if (evt.touches.length == 1 && mousedown) {
+			var touch = evt.touches[0];
+			if (touch.target.parentNode == canvas_container) {
+				evt.preventDefault();
+				move(parseInt(touch.clientX), parseInt(touch.clientY));
+			}
+		}
+
+		// Zoom
+		else if (evt.touches.length == 2) {
+			if (evt.touches[0].target.parentNode == canvas_container && evt.touches[1].target.parentNode == canvas_container && touchzoom) {
+				evt.preventDefault();
+
+				// Calculate the new level of zoom
+				var d = dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY);
+				var diff = d - touchzoom_dist;
+
+				if (diff != 0) {
+					var direction = diff / Math.abs(diff);
+					zoom(zoom_lvl + direction);
+
+					touchzoom_dist = d;
+				}
+			}
 		}
 	}
 
@@ -552,12 +649,12 @@ var PhotoSphereViewer = function(args) {
 	 * @param y (integer) Vertical coordinate
 	 * @return (void)
 	 **/
+
 	var move = function(x, y) {
 		if (mousedown) {
-			theta += (x - mouse_x) * PSV_LONG_OFFSET;
-			theta -= Math.floor(theta / (2.0 * Math.PI)) * 2.0 * Math.PI;
-			phi += (y - mouse_y) * PSV_LAT_OFFSET;
-			phi = stayBetween(phi, -Math.PI / 2.0, Math.PI / 2.0)
+			long = getAngleMeasure(long + (x - mouse_x) * PSV_LONG_OFFSET);
+			lat += (y - mouse_y) * PSV_LAT_OFFSET;
+			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 			mouse_x = x;
 			mouse_y = y;
@@ -570,6 +667,7 @@ var PhotoSphereViewer = function(args) {
 	 * @param evt (Event) The event
 	 * @return (void)
 	 **/
+
 	var onMouseWheel = function(evt) {
 		evt.preventDefault();
 		evt.stopPropagation();
@@ -642,6 +740,22 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var fullscreenToggled = function() {
+		// Fix the (weird and ugly) Chrome behavior
+		if (!!document.webkitFullscreenElement) {
+			real_viewer_size.width = container.style.width;
+			real_viewer_size.height = container.style.height;
+
+			container.style.width = '100%';
+			container.style.height = '100%';
+			fitToContainer();
+		}
+
+		else if (!!container.webkitRequestFullscreen) {
+			container.style.width = real_viewer_size.width;
+			container.style.height = real_viewer_size.height;
+			fitToContainer();
+		}
+
 		triggerAction('fullscreen-mode', isFullscreenEnabled());
 	}
 
@@ -737,8 +851,8 @@ var PhotoSphereViewer = function(args) {
 				m_anim = false;
 		}
 
-		// Theta offset
-		theta_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
+		// Longitude offset
+		long_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
 	}
 
 	/**
@@ -796,8 +910,13 @@ var PhotoSphereViewer = function(args) {
 	var triggerAction = function(name, arg) {
 		// Does the action have any function?
 		if ((name in actions) && actions[name].length > 0) {
-			for (var i = 0, l = actions[name].length; i < l; ++i)
-				actions[name][i](arg);
+			for (var i = 0, l = actions[name].length; i < l; ++i) {
+				if (arg !== undefined)
+					actions[name][i](arg);
+
+				else
+					actions[name][i]();
+			}
 		}
 	}
 
@@ -815,6 +934,27 @@ var PhotoSphereViewer = function(args) {
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
 
+	// Maximal tilt up / down angles
+	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? parseFloat(args.tilt_up_max) : Math.PI / 2.0;
+	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -parseFloat(args.tilt_down_max) : -Math.PI / 2.0;
+
+	// Default position
+	var lat = 0, long = 0;
+
+	if (args.default_position !== undefined) {
+		if (args.default_position.lat !== undefined)
+			lat = getAngleMeasure(parseFloat(args.default_position.lat));
+
+		if (args.default_position.long !== undefined)
+			long = getAngleMeasure(parseFloat(args.default_position.long));
+	}
+
+	// Default zoom level
+	var zoom_lvl = 0;
+
+	if (args.zoom_level !== undefined)
+		zoom_lvl = stayBetween(parseInt(Math.round(args.zoom_level)), 0, 100);
+
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;
 	var PSV_ANIM_TIMEOUT = 1000 / PSV_FRAMES_PER_SECOND;
@@ -831,7 +971,7 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	// Deprecated: horizontal offset for the animation
-	var theta_offset = (args.theta_offset !== undefined) ? Math.PI / parseInt(args.theta_offset) : Math.PI / 1440;
+	var long_offset = (args.theta_offset !== undefined) ? Math.PI / parseInt(args.theta_offset) : Math.PI / 1440;
 
 	// Horizontal animation speed
 	if (args.anim_speed !== undefined)
@@ -852,7 +992,7 @@ var PhotoSphereViewer = function(args) {
 	var container = args.container;
 
 	// Size of the viewer
-	var viewer_size, new_viewer_size = {};
+	var viewer_size, new_viewer_size = {}, real_viewer_size = {};
 	if (args.size !== undefined)
 		setNewViewerSize(args.size);
 
@@ -860,9 +1000,8 @@ var PhotoSphereViewer = function(args) {
 	var panorama = args.panorama;
 	var root, canvas_container;
 	var renderer = null, scene = null, camera = null;
-	var phi = 0, theta = 0;
-	var zoom_lvl = 0;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
+	var touchzoom = false, touchzoom_dist = 0;
 	var autorotate_timeout = null, anim_timeout = null;
 
 	var actions = {};
@@ -872,6 +1011,10 @@ var PhotoSphereViewer = function(args) {
 
 	// Loading indicator
 	var loading_img = (args.loading_img !== undefined) ? args.loading_img : null;
+
+	// Function to call once panorama is ready?
+	if (args.onready !== undefined)
+		this.addAction('ready', args.onready);
 
 	// Go?
 	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
