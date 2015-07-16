@@ -1,5 +1,5 @@
 /*
-* Photo Sphere Viewer v2.2
+* Photo Sphere Viewer v2.2.1
 * http://jeremyheleine.com/#photo-sphere-viewer
 *
 * Copyright (c) 2014,2015 Jérémy Heleine
@@ -509,7 +509,7 @@ var PhotoSphereViewer = function(args) {
 	 * @return (void)
 	 **/
 
-	resize = function(size) {
+	var resize = function(size) {
 		viewer_size.width = (size.width !== undefined) ? parseInt(size.width) : viewer_size.width;
 		viewer_size.height = (size.height !== undefined) ? parseInt(size.height) : viewer_size.height;
 		viewer_size.ratio = viewer_size.width / viewer_size.height;
