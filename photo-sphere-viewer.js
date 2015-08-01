@@ -57,7 +57,7 @@ var PhotoSphereViewer = function(args) {
 	var isCanvasSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(canvas.getContext && canvas.getContext('2d'));
-	}
+	};
 
 	/**
 	 * Detects whether WebGL is supported
@@ -67,7 +67,7 @@ var PhotoSphereViewer = function(args) {
 	var isWebGLSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(window.WebGLRenderingContext && canvas.getContext('webgl'));
-	}
+	};
 
 	/**
 	 * Attaches an event handler function to an elemnt
@@ -82,7 +82,7 @@ var PhotoSphereViewer = function(args) {
 			elt.addEventListener(evt, f, false);
 		else
 			elt.attachEvent('on' + evt, f);
-	}
+	};
 
 	/**
 	 * Ensures that a number is in a given interval
@@ -94,7 +94,7 @@ var PhotoSphereViewer = function(args) {
 
 	var stayBetween = function(x, min, max) {
 		return Math.max(min, Math.min(max, x));
-	}
+	};
 
 	/**
 	 * Calculates the distance between two points (square of the distance is enough)
@@ -109,7 +109,7 @@ var PhotoSphereViewer = function(args) {
 		var x = x2 - x1;
 		var y = y2 - y1;
 		return x*x + y*y;
-	}
+	};
 
 	/**
 	 * Returns the measure of an angle (between 0 and 2π)
@@ -119,7 +119,7 @@ var PhotoSphereViewer = function(args) {
 
 	var getAngleMeasure = function(angle) {
 		return angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
-	}
+	};
 
 	/**
 	 * Starts to load the panorama
@@ -168,7 +168,7 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			createBuffer(false);
-	}
+	};
 
 	/**
 	 * Returns the value of a given attribute in the panorama metadata
@@ -180,7 +180,7 @@ var PhotoSphereViewer = function(args) {
 	var getAttribute = function(data, attr) {
 		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
 		return data.substring(a, b);
-	}
+	};
 
 	/**
 	 * Loads the XMP data with AJAX
@@ -236,7 +236,7 @@ var PhotoSphereViewer = function(args) {
 
 		xhr.open('GET', panorama, true);
 		xhr.send(null);
-	}
+	};
 
 	/**
 	 * Creates an image in the right dimensions
@@ -264,12 +264,13 @@ var PhotoSphereViewer = function(args) {
 				var max_width = 2048;
 				if (isWebGLSupported()) {
 					var canvas = document.createElement('canvas');
-					var ctx = canvas.getContext('webgl');
-					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+					ctx = canvas.getContext('webgl');
+					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE)/2;
 				}
 
 				// Buffer width (not too big)
 				var new_width = Math.min(pano_data.full_width, max_width);
+				alert("max_width:" + max_width + " new_width: " + new_width);
 				var r = new_width / pano_data.full_width;
 
 				pano_data.full_width = new_width;
@@ -288,7 +289,7 @@ var PhotoSphereViewer = function(args) {
 				buffer.width = pano_data.full_width;
 				buffer.height = pano_data.full_height;
 
-				var ctx = buffer.getContext('2d');
+				ctx = buffer.getContext('2d');
 				ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
 
 				loadTexture(buffer.toDataURL('image/jpeg'));
@@ -299,7 +300,7 @@ var PhotoSphereViewer = function(args) {
 			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
-	}
+	};
 
 	/**
 	 * Loads the sphere texture
@@ -316,10 +317,11 @@ var PhotoSphereViewer = function(args) {
 			texture.image = img;
 
 			createScene(texture);
-		}
+			alert("texture loaded");
+		};
 
 		loader.load(path, onLoad);
-	}
+	};
 
 	/**
 	 * Creates the 3D scene
@@ -338,7 +340,7 @@ var PhotoSphereViewer = function(args) {
 		fitToContainer();
 
 		// The chosen renderer depends on whether WebGL is supported or not
-		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
+		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer({antialiasing: true}) : new THREE.CanvasRenderer();
 		renderer.setSize(viewer_size.width, viewer_size.height);
 
 		scene = new THREE.Scene();
@@ -354,12 +356,78 @@ var PhotoSphereViewer = function(args) {
 		mesh.scale.x = -1;
 		scene.add(mesh);
 
+
 		// Canvas container
 		canvas_container = document.createElement('div');
 		canvas_container.style.position = 'absolute';
 		canvas_container.style.zIndex = 0;
 		root.appendChild(canvas_container);
 
+		//Waypoints
+		if(args.waypoints){
+			cScene = new THREE.Scene();
+			args.waypoints.forEach(function(e){
+				v3 = latAndLonToVector(e.at.lat,e.at.lon,200);
+				addWaypointAt(v3,e.ref,e.description);
+			});
+
+			cRenderer = new THREE.CSS3DRenderer();
+			cRenderer.setSize(viewer_size.width,viewer_size.height);
+			cRenderer.domElement.style.position = 'absolute';
+			cRenderer.domElement.style.top = 0;
+			cRenderer.domElement.style.zIndex = 5;
+			canvas_container.appendChild(cRenderer.domElement);
+		}
+
+		function addWaypointAt(v3,ref,des){
+			d = document.createElement("div");
+			d.style.opacity = "0.8";
+			d.style.textAlign = "center";
+			i = document.createElement("img");
+			i.width = 30;
+			i.src = "pics/arrow.png";
+			i.alt = "arrow";
+			d.appendChild(i);
+			p = document.createElement("div");
+			p.style.color = "white";
+			p.style.backgroundColor = "#888888";
+			p.style.border = "2px solid white";
+			p.style.borderRadius = "5px";
+			p.style.textShadow = "0em 0em 1em #ffffff";
+			p.textContent = des;
+			d.appendChild(p);
+			o = new THREE.CSS3DSprite(d);
+			o.position.copy(v3);
+			cScene.add(o);
+
+			addEvent(d,"mousedown",onPressDown);
+			addEvent(d,"mouseup",onPressUp);
+			addEvent(d,"touchstart",onPressDown);
+			addEvent(d,"touchend",onPressUp);
+
+			var pressed = false;
+			function onPressDown(e){
+				if(!pressed){
+					pressed = true;
+				}
+			}
+
+			function onPressUp(e){
+				if(pressed){
+					triggerAction("switchscene",ref);
+				}
+			}
+		}
+
+		function latAndLonToVector(lat,long,radius){
+			lat = getAngleMeasure(lat);
+			long = getAngleMeasure(long);
+			var vector = new THREE.Vector3();
+			vector.x = radius * Math.cos(lat) * Math.sin(long);
+			vector.y = radius * Math.sin(lat);
+			vector.z = radius * Math.cos(lat) * Math.cos(long);
+			return vector;
+		}
 		// Navigation bar?
 		if (display_navbar) {
 			navbar.setStyle(navbar_style);
@@ -403,7 +471,9 @@ var PhotoSphereViewer = function(args) {
 
 		// Panorama is ready
 		triggerAction('ready');
-	}
+	};
+
+
 
 	/**
 	* Renders an image
@@ -418,7 +488,10 @@ var PhotoSphereViewer = function(args) {
 
 		camera.lookAt(point);
 		renderer.render(scene, camera);
-	}
+		if(!!cRenderer){
+			cRenderer.render(cScene,camera);
+		}
+	};
 
 	/**
 	* Automatically animates the panorama
@@ -428,7 +501,7 @@ var PhotoSphereViewer = function(args) {
 	var anim = function() {
 		if (anim_delay !== false)
 			anim_timeout = setTimeout(startAutorotate, anim_delay);
-	}
+	};
 
 	/**
 	* Automatically rotates the panorama
@@ -445,7 +518,7 @@ var PhotoSphereViewer = function(args) {
 
 		render();
 		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
-	}
+	};
 
 	/**
 	 * Starts the autorotate animation
@@ -455,7 +528,7 @@ var PhotoSphereViewer = function(args) {
 	var startAutorotate = function() {
 		autorotate();
 		triggerAction('autorotate', true);
-	}
+	};
 
 	/**
 	 * Stops the autorotate animation
@@ -470,7 +543,7 @@ var PhotoSphereViewer = function(args) {
 		autorotate_timeout = null;
 
 		triggerAction('autorotate', false);
-	}
+	};
 
 	/**
 	 * Launches/stops the autorotate animation
@@ -485,7 +558,7 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			startAutorotate();
-	}
+	};
 
 	/**
 	 * Resizes the canvas to make it fit the container
@@ -499,7 +572,7 @@ var PhotoSphereViewer = function(args) {
 				height: container.clientHeight
 			});
 		}
-	}
+	};
 
 	/**
 	 * Resizes the canvas
@@ -521,9 +594,14 @@ var PhotoSphereViewer = function(args) {
 
 		if (!!renderer) {
 			renderer.setSize(viewer_size.width, viewer_size.height);
+			if(!!cRenderer){
+				cRenderer.setSize(viewer_size.width,viewer_size.height);
+			}
 			render();
 		}
-	}
+
+		
+	};
 
 	/**
 	 * The user wants to move
@@ -533,7 +611,7 @@ var PhotoSphereViewer = function(args) {
 
 	var onMouseDown = function(evt) {
 		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
 	 * The user wants to move or to zoom (mobile version)
@@ -556,7 +634,7 @@ var PhotoSphereViewer = function(args) {
 			if (evt.touches[0].target.parentNode == canvas_container && evt.touches[1].target.parentNode == canvas_container)
 				startTouchZoom(dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY));
 		}
-	}
+	};
 
 	/**
 	 * Initializes the movement
@@ -572,7 +650,7 @@ var PhotoSphereViewer = function(args) {
 		stopAutorotate();
 
 		mousedown = true;
-	}
+	};
 
 	/**
 	 * Initializes the "pinch to zoom" action
@@ -584,7 +662,7 @@ var PhotoSphereViewer = function(args) {
 		touchzoom_dist = d;
 
 		touchzoom = true;
-	}
+	};
 
 	/**
 	 * The user wants to stop moving (or stop zooming with their finger)
@@ -595,7 +673,7 @@ var PhotoSphereViewer = function(args) {
 	var onMouseUp = function(evt) {
 		mousedown = false;
 		touchzoom = false;
-	}
+	};
 
 	/**
 	 * The user moves the image
@@ -606,7 +684,7 @@ var PhotoSphereViewer = function(args) {
 	var onMouseMove = function(evt) {
 		evt.preventDefault();
 		move(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
 	 * The user moves the image (mobile version)
@@ -633,7 +711,7 @@ var PhotoSphereViewer = function(args) {
 				var d = dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY);
 				var diff = d - touchzoom_dist;
 
-				if (diff != 0) {
+				if (diff !== 0) {
 					var direction = diff / Math.abs(diff);
 					zoom(zoom_lvl + direction);
 
@@ -641,7 +719,7 @@ var PhotoSphereViewer = function(args) {
 				}
 			}
 		}
-	}
+	};
 
 	/**
 	 * Movement
@@ -652,6 +730,7 @@ var PhotoSphereViewer = function(args) {
 
 	var move = function(x, y) {
 		if (mousedown) {
+			console.log("long:" + long + "lat:" + lat);
 			long = getAngleMeasure(long + (x - mouse_x) * PSV_LONG_OFFSET);
 			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
@@ -660,7 +739,7 @@ var PhotoSphereViewer = function(args) {
 			mouse_y = y;
 			render();
 		}
-	}
+	};
 
 	/**
 	 * The user wants to zoom
@@ -674,11 +753,11 @@ var PhotoSphereViewer = function(args) {
 
 		var delta = (evt.detail) ? -evt.detail : evt.wheelDelta;
 
-		if (delta != 0) {
+		if (delta !== 0) {
 			var direction = parseInt(delta / Math.abs(delta));
 			zoom(zoom_lvl + direction);
 		}
-	}
+	};
 
 	/**
 	 * Zoom
@@ -694,7 +773,7 @@ var PhotoSphereViewer = function(args) {
 		render();
 
 		triggerAction('zoom-updated', zoom_lvl);
-	}
+	};
 
 	/**
 	 * Zoom (public)
@@ -703,7 +782,7 @@ var PhotoSphereViewer = function(args) {
 	 **/
 	this.zoom = function(level) {
 		zoom(level);
-	}
+	};
 
 	/**
 	 * Zoom in
@@ -713,7 +792,7 @@ var PhotoSphereViewer = function(args) {
 	this.zoomIn = function() {
 		if (zoom_lvl < 100)
 			zoom(zoom_lvl + 1);
-	}
+	};
 
 	/**
 	 * Zoom out
@@ -723,7 +802,7 @@ var PhotoSphereViewer = function(args) {
 	this.zoomOut = function() {
 		if (zoom_lvl > 0)
 			zoom(zoom_lvl - 1);
-	}
+	};
 
 	/**
 	 * Detects whether fullscreen is enabled or not
@@ -732,7 +811,7 @@ var PhotoSphereViewer = function(args) {
 
 	var isFullscreenEnabled = function() {
 		return (!!document.fullscreenElement || !!document.mozFullScreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement);
-	}
+	};
 
 	/**
 	 * Fullscreen state has changed
@@ -757,7 +836,7 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		triggerAction('fullscreen-mode', isFullscreenEnabled());
-	}
+	};
 
 	/**
 	 * Enables/disables fullscreen
@@ -793,7 +872,7 @@ var PhotoSphereViewer = function(args) {
 			else if (!!document.msExitFullscreen)
 				document.msExitFullscreen();
 		}
-	}
+	};
 
 	/**
 	 * Sets the animation speed
@@ -853,7 +932,7 @@ var PhotoSphereViewer = function(args) {
 
 		// Longitude offset
 		long_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
-	}
+	};
 
 	/**
 	 * Sets the viewer size
@@ -863,7 +942,7 @@ var PhotoSphereViewer = function(args) {
 
 	var setNewViewerSize = function(size) {
 		// Checks all the values
-		for (dim in size) {
+		for (var dim in size) {
 			// Only width and height matter
 			if (dim == 'width' || dim == 'height') {
 				// Size extraction
@@ -883,7 +962,7 @@ var PhotoSphereViewer = function(args) {
 					};
 			}
 		}
-	}
+	};
 
 	/**
 	 * Adds an action
@@ -898,7 +977,7 @@ var PhotoSphereViewer = function(args) {
 			actions[name] = [];
 
 		actions[name].push(f);
-	}
+	};
 
 	/**
 	 * Triggers an action
@@ -913,12 +992,11 @@ var PhotoSphereViewer = function(args) {
 			for (var i = 0, l = actions[name].length; i < l; ++i) {
 				if (arg !== undefined)
 					actions[name][i](arg);
-
 				else
 					actions[name][i]();
 			}
 		}
-	}
+	};
 
 	// Required parameters
 	if (args === undefined || args.panorama === undefined || args.container === undefined) {
@@ -943,11 +1021,13 @@ var PhotoSphereViewer = function(args) {
 
 	if (args.default_position !== undefined) {
 		if (args.default_position.lat !== undefined)
-			lat = getAngleMeasure(parseFloat(args.default_position.lat));
+			//it's better to use stayBetween for lat.
+			lat = stayBetween(parseFloat(args.default_position.lat), PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 		if (args.default_position.long !== undefined)
 			long = getAngleMeasure(parseFloat(args.default_position.long));
 	}
+
 
 	// Default zoom level
 	var zoom_lvl = 0;
@@ -999,7 +1079,9 @@ var PhotoSphereViewer = function(args) {
 	// Some useful attributes
 	var panorama = args.panorama;
 	var root, canvas_container;
-	var renderer = null, scene = null, camera = null;
+	var renderer = null, scene = null,camera = null;
+
+	var cRenderer = null, cScene = null;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
 	var touchzoom = false, touchzoom_dist = 0;
 	var autorotate_timeout = null, anim_timeout = null;
@@ -1021,7 +1103,7 @@ var PhotoSphereViewer = function(args) {
 
 	if (autoload)
 		this.load();
-}
+};
 
 /**
  * Navigation bar class
@@ -1043,7 +1125,7 @@ var PSVNavBar = function(psv) {
 		}
 
 		return false;
-	}
+	};
 
 	/**
 	 * Checks if a property is valid
@@ -1068,7 +1150,7 @@ var PSVNavBar = function(psv) {
 				// Number
 				(inArray(property, numbers) && !isNaN(parseFloat(value)) && isFinite(value) && value >= 0)
 			);
-	}
+	};
 
 	/**
 	 * Sets the style
@@ -1078,12 +1160,12 @@ var PSVNavBar = function(psv) {
 
 	this.setStyle = function(new_style) {
 		// Properties to change
-		for (property in new_style) {
+		for ( var property in new_style) {
 			// Is this property a property we'll use?
 			if ((property in style) && checkValue(property, new_style[property]))
 				style[property] = new_style[property];
 		}
-	}
+	};
 
 	/**
 	 * Creates the elements
@@ -1111,7 +1193,7 @@ var PSVNavBar = function(psv) {
 		// Fullscreen button
 		fullscreen = new PSVNavBarButton(psv, 'fullscreen', style);
 		container.appendChild(fullscreen.getButton());
-	}
+	};
 
 	/**
 	 * Returns the bar itself
@@ -1120,7 +1202,7 @@ var PSVNavBar = function(psv) {
 
 	this.getBar = function() {
 		return container;
-	}
+	};
 
 	// Default style
 	var style = {
@@ -1165,7 +1247,7 @@ var PSVNavBar = function(psv) {
 	// Some useful attributes
 	var container;
 	var arrows, autorotate, zoom, fullscreen;
-}
+};
 
 /**
  * Navigation bar button class
@@ -1188,7 +1270,7 @@ var PSVNavBarButton = function(psv, type, style) {
             elt.addEventListener(evt, f, false);
         else
             elt.attachEvent('on' + evt, f);
-    }
+    };
 
     /**
      * Creates the right button
@@ -1324,7 +1406,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		button.style.backgroundColor = style.buttonsBackgroundColor;
         		button.style.cursor = 'pointer';
 
-        		addEvent(button, 'click', function(){psv.toggleFullscreen();})
+        		addEvent(button, 'click', function(){psv.toggleFullscreen();});
 
         		// Fullscreen icon left side
         		var fullscreen_left = document.createElement('div');
@@ -1376,7 +1458,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
                 break;
         }
-    }
+    };
 
     /**
      * Returns the button element
@@ -1385,7 +1467,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
     this.getButton = function() {
         return button;
-    }
+    };
 
     /**
      * Changes the active state of the button
@@ -1399,7 +1481,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
         else
             button.style.backgroundColor = style.buttonsBackgroundColor;
-    }
+    };
 
     /**
      * Moves the zoom cursor
@@ -1409,7 +1491,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
     var moveZoomValue = function(level) {
         zoom_value.style.left = (level / 100 * style.zoomRangeWidth - style.zoomRangeDisk / 2) + 'px';
-    }
+    };
 
     /**
      * The user wants to zoom
@@ -1419,7 +1501,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
     var initZoomChangeWithMouse = function(evt) {
         initZoomChange(parseInt(evt.clientX));
-    }
+    };
 
     /**
      * The user wants to zoom (mobile version)
@@ -1431,7 +1513,7 @@ var PSVNavBarButton = function(psv, type, style) {
         var touch = evt.touches[0];
         if (touch.target == zoom_range_bg || touch.target == zoom_range || touch.target == zoom_value)
             initZoomChange(parseInt(touch.clientX));
-    }
+    };
 
     /**
      * Initializes a zoom change
@@ -1442,7 +1524,7 @@ var PSVNavBarButton = function(psv, type, style) {
     var initZoomChange = function(x) {
         mousedown = true;
         changeZoom(x);
-    }
+    };
 
     /**
      * The user wants to stop zooming
@@ -1452,7 +1534,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
     var stopZoomChange = function(evt) {
         mousedown = false;
-    }
+    };
 
     /**
      * The user moves the zoom cursor
@@ -1463,7 +1545,7 @@ var PSVNavBarButton = function(psv, type, style) {
     var changeZoomWithMouse = function(evt) {
         evt.preventDefault();
         changeZoom(parseInt(evt.clientX));
-    }
+    };
 
     /**
      * The user moves the zoom cursor (mobile version)
@@ -1477,7 +1559,7 @@ var PSVNavBarButton = function(psv, type, style) {
             evt.preventDefault();
             changeZoom(parseInt(touch.clientX));
         }
-    }
+    };
 
     /**
      * Zoom change
@@ -1491,7 +1573,7 @@ var PSVNavBarButton = function(psv, type, style) {
             var zoom_level = user_input / style.zoomRangeWidth * 100;
             psv.zoom(zoom_level);
         }
-    }
+    };
 
     // Some useful attributes
     var zoom_range_bg, zoom_range, zoom_value;
@@ -1500,4 +1582,4 @@ var PSVNavBarButton = function(psv, type, style) {
     // Create the button
     var button;
     create();
-}
+};
