@@ -265,11 +265,12 @@ var PhotoSphereViewer = function(args) {
 				if (isWebGLSupported()) {
 					var canvas = document.createElement('canvas');
 					ctx = canvas.getContext('webgl');
-					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE)/2;
 				}
 
 				// Buffer width (not too big)
 				var new_width = Math.min(pano_data.full_width, max_width);
+				alert("max_width:" + max_width + " new_width: " + new_width);
 				var r = new_width / pano_data.full_width;
 
 				pano_data.full_width = new_width;
@@ -316,6 +317,7 @@ var PhotoSphereViewer = function(args) {
 			texture.image = img;
 
 			createScene(texture);
+			alert("texture loaded");
 		};
 
 		loader.load(path, onLoad);
@@ -338,7 +340,7 @@ var PhotoSphereViewer = function(args) {
 		fitToContainer();
 
 		// The chosen renderer depends on whether WebGL is supported or not
-		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer() : new THREE.CanvasRenderer();
+		renderer = (isWebGLSupported()) ? new THREE.WebGLRenderer({antialiasing: true}) : new THREE.CanvasRenderer();
 		renderer.setSize(viewer_size.width, viewer_size.height);
 
 		scene = new THREE.Scene();
@@ -354,12 +356,78 @@ var PhotoSphereViewer = function(args) {
 		mesh.scale.x = -1;
 		scene.add(mesh);
 
+
 		// Canvas container
 		canvas_container = document.createElement('div');
 		canvas_container.style.position = 'absolute';
 		canvas_container.style.zIndex = 0;
 		root.appendChild(canvas_container);
 
+		//Waypoints
+		if(args.waypoints){
+			cScene = new THREE.Scene();
+			args.waypoints.forEach(function(e){
+				v3 = latAndLonToVector(e.at.lat,e.at.lon,200);
+				addWaypointAt(v3,e.ref,e.description);
+			});
+
+			cRenderer = new THREE.CSS3DRenderer();
+			cRenderer.setSize(viewer_size.width,viewer_size.height);
+			cRenderer.domElement.style.position = 'absolute';
+			cRenderer.domElement.style.top = 0;
+			cRenderer.domElement.style.zIndex = 5;
+			canvas_container.appendChild(cRenderer.domElement);
+		}
+
+		function addWaypointAt(v3,ref,des){
+			d = document.createElement("div");
+			d.style.opacity = "0.8";
+			d.style.textAlign = "center";
+			i = document.createElement("img");
+			i.width = 30;
+			i.src = "pics/arrow.png";
+			i.alt = "arrow";
+			d.appendChild(i);
+			p = document.createElement("div");
+			p.style.color = "white";
+			p.style.backgroundColor = "#888888";
+			p.style.border = "2px solid white";
+			p.style.borderRadius = "5px";
+			p.style.textShadow = "0em 0em 1em #ffffff";
+			p.textContent = des;
+			d.appendChild(p);
+			o = new THREE.CSS3DSprite(d);
+			o.position.copy(v3);
+			cScene.add(o);
+
+			addEvent(d,"mousedown",onPressDown);
+			addEvent(d,"mouseup",onPressUp);
+			addEvent(d,"touchstart",onPressDown);
+			addEvent(d,"touchend",onPressUp);
+
+			var pressed = false;
+			function onPressDown(e){
+				if(!pressed){
+					pressed = true;
+				}
+			}
+
+			function onPressUp(e){
+				if(pressed){
+					triggerAction("switchscene",ref);
+				}
+			}
+		}
+
+		function latAndLonToVector(lat,long,radius){
+			lat = getAngleMeasure(lat);
+			long = getAngleMeasure(long);
+			var vector = new THREE.Vector3();
+			vector.x = radius * Math.cos(lat) * Math.sin(long);
+			vector.y = radius * Math.sin(lat);
+			vector.z = radius * Math.cos(lat) * Math.cos(long);
+			return vector;
+		}
 		// Navigation bar?
 		if (display_navbar) {
 			navbar.setStyle(navbar_style);
@@ -405,6 +473,8 @@ var PhotoSphereViewer = function(args) {
 		triggerAction('ready');
 	};
 
+
+
 	/**
 	* Renders an image
 	* @return (void)
@@ -418,6 +488,9 @@ var PhotoSphereViewer = function(args) {
 
 		camera.lookAt(point);
 		renderer.render(scene, camera);
+		if(!!cRenderer){
+			cRenderer.render(cScene,camera);
+		}
 	};
 
 	/**
@@ -521,8 +594,13 @@ var PhotoSphereViewer = function(args) {
 
 		if (!!renderer) {
 			renderer.setSize(viewer_size.width, viewer_size.height);
+			if(!!cRenderer){
+				cRenderer.setSize(viewer_size.width,viewer_size.height);
+			}
 			render();
 		}
+
+		
 	};
 
 	/**
@@ -652,6 +730,7 @@ var PhotoSphereViewer = function(args) {
 
 	var move = function(x, y) {
 		if (mousedown) {
+			console.log("long:" + long + "lat:" + lat);
 			long = getAngleMeasure(long + (x - mouse_x) * PSV_LONG_OFFSET);
 			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
@@ -913,7 +992,6 @@ var PhotoSphereViewer = function(args) {
 			for (var i = 0, l = actions[name].length; i < l; ++i) {
 				if (arg !== undefined)
 					actions[name][i](arg);
-
 				else
 					actions[name][i]();
 			}
@@ -943,11 +1021,13 @@ var PhotoSphereViewer = function(args) {
 
 	if (args.default_position !== undefined) {
 		if (args.default_position.lat !== undefined)
-			lat = getAngleMeasure(parseFloat(args.default_position.lat));
+			//it's better to use stayBetween for lat.
+			lat = stayBetween(parseFloat(args.default_position.lat), PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 		if (args.default_position.long !== undefined)
 			long = getAngleMeasure(parseFloat(args.default_position.long));
 	}
+
 
 	// Default zoom level
 	var zoom_lvl = 0;
@@ -999,7 +1079,9 @@ var PhotoSphereViewer = function(args) {
 	// Some useful attributes
 	var panorama = args.panorama;
 	var root, canvas_container;
-	var renderer = null, scene = null, camera = null;
+	var renderer = null, scene = null,camera = null;
+
+	var cRenderer = null, cScene = null;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
 	var touchzoom = false, touchzoom_dist = 0;
 	var autorotate_timeout = null, anim_timeout = null;
