@@ -6,7 +6,7 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
 
 ## How To Use It
 
-1. Include the `three.min.js` and `photo-sphere-viewer.js` files into your page.
+1. Include the `three.min.js` and `photo-sphere-viewer.min.js` files into your page.
 2. Create a `div` in the size you want for your panorama.
 3. In JavaScript, create a new `PhotoSphereViewer` object. You must pass it an object containing at least two parameters for the panorama. Here is the list of available parameters.
     * `panorama` (required): the path to the panorama.
@@ -16,6 +16,7 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
     * `default_position` (optional, default to `{}`) Defines the default position, the first point seen by the user (e.g. `{long: Math.PI, lat: Math.PI/2}`).
     * `min_fov` (optional, default to `30`): the minimal field of view, in degrees, between 1 and 179.
     * `max_fov` (optional, default to `90`): the maximal field of view, in degrees, between 1 and 179.
+    * `allow_user_interactions` (optional, default to `true`): If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled).
     * `tilt_up_max` (optional, default to `Math.PI/2`) The maximal tilt up angle, in radians.
     * `tilt_down_max` (optional, default to `Math.PI/2`) The maximal tilt down angle, in radians.
     * `zoom_level` (optional, default to `0`) The default zoom level, between 0 and 100.
@@ -39,6 +40,7 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
         * `fullscreenThickness`: fullscreen icon thickness in pixels (default to `2`).
 
         Colors can be in `rgb()`, `rgba()` or hexadecimal format, and the keyword `transparent` is accepted.
+    * `loading_msg` (optional, default to `Loading…`): Loading message.
     * `loading_img` (optional, default to `null`): the path to the image shown during the loading.
     * `size` (optional, default to `null`): the final size of the panorama container (e.g. `{width: 500, height: 300}`).
     * `onready` (optional, default to `null`) Function called once the panorama is ready and the first image is displayed.

@@ -1,80 +1,101 @@
 /*
-* Photo Sphere Viewer v2.2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * Photo Sphere Viewer v2.3
+ * http://jeremyheleine.me/photo-sphere-viewer
+ *
+ * Copyright (c) 2014,2015 Jérémy Heleine
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 /**
- * Viewer class
- * @param args (Object) Viewer settings
- * - panorama (string) Panorama URL or path (absolute or relative)
- * - container (HTMLElement) Panorama container (should be a div or equivalent)
- * - autoload (boolean) (optional) (true) true to automatically load the panorama, false to load it later (with the .load() method)
- * - usexmpdata (boolean) (optional) (true) true if Photo Sphere Viewer must read XMP data, false if it is not necessary
- * - default_position (Object) (optional) ({}) Defines the default position, the first point seen by the user (e.g. {long: Math.PI, lat: Math.PI/2})
- * - min_fov (number) (optional) (30) The minimal field of view, in degrees, between 1 and 179
- * - max_fov (number) (optional) (90) The maximal field of view, in degrees, between 1 and 179
- * - tilt_up_max (number) (optional) (Math.PI/2) The maximal tilt up angle, in radians
- * - tilt_down_max (number) (optional) (Math.PI/2) The maximal tilt down angle, in radians
- * - zoom_level (number) (optional) (0) The default zoom level, between 0 and 100
- * - long_offset (number) (optional) (PI/360) The longitude to travel per pixel moved by mouse/touch
- * - lat_offset (number) (optional) (PI/180) The latitude to travel per pixel moved by mouse/touch
- * - time_anim (integer) (optional) (2000) Delay before automatically animating the panorama in milliseconds, false to not animate
- * - theta_offset (integer) (optional) (1440) (deprecated) The PI fraction to add to theta during the animation
- * - anim_speed (string) (optional) (2rpm) Animation speed in radians/degrees/revolutions per second/minute
- * - navbar (boolean) (optional) (false) Display the navigation bar if set to true
- * - navbar_style (Object) (optional) ({}) Style of the navigation bar
- * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
- * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
- * - onready (Function) (optional) (null) Function called once the panorama is ready and the first image is displayed
+ * Represents a panorama viewer.
+ * @class
+ * @param {object} args - Settings to apply to the viewer
+ * @param {string} args.panorama - Panorama URL or path (absolute or relative)
+ * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
+ * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
+ * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
+ * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
+ * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
+ * @param {number} [args.min_fov=30] - The minimal field of view, in degrees, between 1 and 179
+ * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
+ * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
+ * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
+ * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
+ * @param {number} [args.zoom_level=0] - The default zoom level, between 0 and 100
+ * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
+ * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
+ * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
+ * @param {integer} [args.theta_offset=1440] - (deprecated, use `anim_speed` instead) The π fraction to add to theta during the animation
+ * @param {string} [args.anim_speed=2rpm] - Animation speed in radians/degrees/revolutions per second/minute
+ * @param {boolean} [args.navbar=false] - Display the navigation bar if set to `true`
+ * @param {object} [args.navbar_style] - Style of the navigation bar
+ * @param {string} [args.navbar_style.backgroundColor=rgba(61, 61, 61, 0.5)] - Navigation bar background color
+ * @param {string} [args.navbar_style.buttonsColor=rgba(255, 255, 255, 0.7)] - Buttons foreground color
+ * @param {string} [args.navbar_style.buttonsBackgroundColor=transparent] - Buttons background color
+ * @param {string} [args.navbar_style.activeButtonsBackgroundColor=rgba(255, 255, 255, 0.1)] - Active buttons background color
+ * @param {number} [args.navbar_style.buttonsHeight=20] - Buttons height in pixels
+ * @param {number} [args.navbar_style.autorotateThickness=1] - Autorotate icon thickness in pixels
+ * @param {number} [args.navbar_style.zoomRangeWidth=50] - Zoom range width in pixels
+ * @param {number} [args.navbar_style.zoomRangeThickness=1] - Zoom range thickness in pixels
+ * @param {number} [args.navbar_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
+ * @param {number} [args.navbar_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width/height)
+ * @param {number} [args.navbar_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+ * @param {string} [args.loading_msg=Loading…] - Loading message
+ * @param {string} [args.loading_img=null] - Loading image URL or path (absolute or relative)
+ * @param {object} [args.size] - Final size of the panorama container (e.g. {width: 500, height: 300})
+ * @param {(number|string)} [args.size.width] - Final width in percentage (e.g. `'50%'`) or pixels (e.g. `500` or `'500px'`) ; default to current width
+ * @param {(number|string)} [args.size.height] - Final height in percentage or pixels ; default to current height
+ * @param {PhotoSphereViewer~onReady} [args.onready] - Function called once the panorama is ready and the first image is displayed
  **/
 
 var PhotoSphereViewer = function(args) {
 	/**
-	 * Detects whether canvas is supported
-	 * @return (boolean) true if canvas is supported, false otherwise
+	 * Detects whether canvas is supported.
+	 * @private
+	 * @return {boolean} `true` if canvas is supported, `false` otherwise
 	 **/
 
 	var isCanvasSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(canvas.getContext && canvas.getContext('2d'));
-	}
+	};
 
 	/**
-	 * Detects whether WebGL is supported
-	 * @return (boolean) true if WebGL is supported, false otherwise
+	 * Detects whether WebGL is supported.
+	 * @private
+	 * @return {boolean} `true` if WebGL is supported, `false` otherwise
 	 **/
 
 	var isWebGLSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(window.WebGLRenderingContext && canvas.getContext('webgl'));
-	}
+	};
 
 	/**
-	 * Attaches an event handler function to an elemnt
-	 * @param elt (HTMLElement) The element
-	 * @param evt (string) The event name
-	 * @param f (Function) The handler function
-	 * @return (void)
+	 * Attaches an event handler function to an element.
+	 * @private
+	 * @param {HTMLElement} elt - The element
+	 * @param {string} evt - The event name
+	 * @param {function} f - The handler function
+	 * @return {void}
 	 **/
 
 	var addEvent = function(elt, evt, f) {
@@ -82,48 +103,52 @@ var PhotoSphereViewer = function(args) {
 			elt.addEventListener(evt, f, false);
 		else
 			elt.attachEvent('on' + evt, f);
-	}
+	};
 
 	/**
-	 * Ensures that a number is in a given interval
-	 * @param x (number) The number to check
-	 * @param min (number) First endpoint
-	 * @param max (number) Second endpoint
-	 * @return (number) The checked number
+	 * Ensures that a number is in a given interval.
+	 * @private
+	 * @param {number} x - The number to check
+	 * @param {number} min - First endpoint
+	 * @param {number} max - Second endpoint
+	 * @return {number} The checked number
 	 **/
 
 	var stayBetween = function(x, min, max) {
 		return Math.max(min, Math.min(max, x));
-	}
+	};
 
 	/**
-	 * Calculates the distance between two points (square of the distance is enough)
-	 * @param x1 (number) Horizontal coordinate (first point)
-	 * @param y1 (number) Vertical coordinate (first point)
-	 * @param x2 (number) Horizontal coordinate (second point)
-	 * @param y2 (number) Vertical coordinate (second point)
-	 * @return (number) Squar of the wanted distance
+	 * Calculates the distance between two points (square of the distance is enough).
+	 * @private
+	 * @param {number} x1 - First point horizontal coordinate
+	 * @param {number} y1 - First point vertical coordinate
+	 * @param {number} x2 - Second point horizontal coordinate
+	 * @param {number} y2 - Second point vertical coordinate
+	 * @return {number} Square of the wanted distance
 	 **/
 
 	var dist = function(x1, y1, x2, y2) {
 		var x = x2 - x1;
 		var y = y2 - y1;
 		return x*x + y*y;
-	}
+	};
 
 	/**
-	 * Returns the measure of an angle (between 0 and 2π)
-	 * @param angle (number) The angle to reduce
-	 * @return (number) The wanted measure
+	 * Returns the measure of an angle (between 0 and 2π).
+	 * @private
+	 * @param {number} angle - The angle to reduce
+	 * @return {number} The wanted measure
 	 **/
 
 	var getAngleMeasure = function(angle) {
 		return angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
-	}
+	};
 
 	/**
-	 * Starts to load the panorama
-	 * @return (void)
+	 * Starts to load the panorama.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.load = function() {
@@ -131,17 +156,18 @@ var PhotoSphereViewer = function(args) {
 		if (!!loading_img) {
 			var loading = document.createElement('img');
 			loading.setAttribute('src', loading_img);
-			loading.setAttribute('alt', 'Loading...');
+			loading.setAttribute('alt', loading_msg);
 			container.appendChild(loading);
 		}
 		else
-			container.textContent = 'Loading...';
+			container.textContent = loading_msg;
 
 		// Adds a new container
 		root = document.createElement('div');
 		root.style.width = '100%';
 		root.style.height = '100%';
 		root.style.position = 'relative';
+		root.style.overflow = 'hidden';
 
 		// Is canvas supported?
 		if (!isCanvasSupported()) {
@@ -168,23 +194,25 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			createBuffer(false);
-	}
+	};
 
 	/**
-	 * Returns the value of a given attribute in the panorama metadata
-	 * @param data (string) The panorama metadata
-	 * @param attr (string) The wanted attribute
-	 * @return (string) The value of the attribute
+	 * Returns the value of a given attribute in the panorama metadata.
+	 * @private
+	 * @param {string} data - The panorama metadata
+	 * @param {string} attr - The wanted attribute
+	 * @return {string} The value of the attribute
 	 **/
 
 	var getAttribute = function(data, attr) {
 		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
 		return data.substring(a, b);
-	}
+	};
 
 	/**
-	 * Loads the XMP data with AJAX
-	 * @return (void)
+	 * Loads the XMP data with AJAX.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var loadXMP = function() {
@@ -236,12 +264,13 @@ var PhotoSphereViewer = function(args) {
 
 		xhr.open('GET', panorama, true);
 		xhr.send(null);
-	}
+	};
 
 	/**
-	 * Creates an image in the right dimensions
-	 * @param pano_data (mixed) An object containing the panorama XMP data (false if it there is not)
-	 * @return (void)
+	 * Creates an image in the right dimensions.
+	 * @private
+	 * @param {mixed} pano_data - An object containing the panorama XMP data (`false` if there is not)
+	 * @return {void}
 	 **/
 
 	var createBuffer = function(pano_data) {
@@ -299,12 +328,13 @@ var PhotoSphereViewer = function(args) {
 			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
-	}
+	};
 
 	/**
-	 * Loads the sphere texture
-	 * @param path (URL) Path to the panorama
-	 * @return (void)
+	 * Loads the sphere texture.
+	 * @private
+	 * @param {string} path - Path to the panorama
+	 * @return {void}
 	 **/
 
 	var loadTexture = function(path) {
@@ -319,12 +349,13 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		loader.load(path, onLoad);
-	}
+	};
 
 	/**
-	 * Creates the 3D scene
-	 * @param texture (THREE.Texture) The sphere texture
-	 * @return (void)
+	 * Creates the 3D scene.
+	 * @private
+	 * @param {THREE.Texture} texture - The sphere texture
+	 * @return {void}
 	 **/
 
 	var createScene = function(texture) {
@@ -370,19 +401,26 @@ var PhotoSphereViewer = function(args) {
 		// Adding events
 		addEvent(window, 'resize', fitToContainer);
 
-		addEvent(canvas_container, 'mousedown', onMouseDown);
-		addEvent(canvas_container, 'touchstart', onTouchStart);
-		addEvent(document, 'mouseup', onMouseUp);
-		addEvent(document, 'touchend', onMouseUp);
-		addEvent(document, 'mousemove', onMouseMove);
-		addEvent(document, 'touchmove', onTouchMove);
-		addEvent(canvas_container, 'mousewheel', onMouseWheel);
-		addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+		if (user_interactions_allowed) {
+			addEvent(canvas_container, 'mousedown', onMouseDown);
+			addEvent(document, 'mousemove', onMouseMove);
+			addEvent(canvas_container, 'mousemove', showNavbar);
+			addEvent(document, 'mouseup', onMouseUp);
+
+			addEvent(canvas_container, 'touchstart', onTouchStart);
+			addEvent(document, 'touchend', onMouseUp);
+			addEvent(document, 'touchmove', onTouchMove);
+
+			addEvent(canvas_container, 'mousewheel', onMouseWheel);
+			addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
 		addEvent(document, 'mozfullscreenchange', fullscreenToggled);
 		addEvent(document, 'webkitfullscreenchange', fullscreenToggled);
 		addEvent(document, 'MSFullscreenChange', fullscreenToggled);
+
+		sphoords.addListener(onDeviceOrientation);
 
 		// First render
 		container.innerHTML = '';
@@ -401,13 +439,18 @@ var PhotoSphereViewer = function(args) {
 		// Animation?
 		anim();
 
-		// Panorama is ready
+		/**
+		 * Indicates that the loading is finished: the first image is rendered
+		 * @callback PhotoSphereViewer~onReady
+		 **/
+
 		triggerAction('ready');
-	}
+	};
 
 	/**
-	* Renders an image
-	* @return (void)
+	* Renders an image.
+	* @private
+	* @return {void}
 	**/
 
 	var render = function() {
@@ -417,22 +460,85 @@ var PhotoSphereViewer = function(args) {
 		point.setZ(Math.cos(lat) * Math.cos(long));
 
 		camera.lookAt(point);
-		renderer.render(scene, camera);
-	}
+
+		// Stereo?
+		if (stereo_effect !== null)
+			stereo_effect.render(scene, camera);
+
+		else
+			renderer.render(scene, camera);
+	};
 
 	/**
-	* Automatically animates the panorama
-	* @return (void)
+	 * Starts the stereo effect.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var startStereo = function() {
+		stereo_effect = new THREE.StereoEffect(renderer);
+		stereo_effect.eyeSeparation = 5;
+		stereo_effect.setSize(viewer_size.width, viewer_size.height);
+
+		startDeviceOrientation();
+		enableFullscreen();
+		navbar.mustBeHidden();
+		render();
+
+		/**
+		 * Indicates that the stereo effect has been toggled.
+		 * @callback PhotoSphereViewer~onStereoEffectToggled
+		 * @param {boolean} enabled - `true` if stereo effect is enabled, `false` otherwise
+		 **/
+
+		triggerAction('stereo-effect', true);
+	};
+
+	/**
+	 * Stops the stereo effect.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var stopStereo = function() {
+		stereo_effect = null;
+		renderer.setSize(viewer_size.width, viewer_size.height);
+
+		navbar.mustBeHidden(false);
+		render();
+
+		triggerAction('stereo-effect', false);
+	};
+
+	/**
+	 * Toggles the stereo effect (virtual reality).
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.toggleStereo = function() {
+		if (stereo_effect !== null)
+			stopStereo();
+
+		else
+			startStereo();
+	};
+
+	/**
+	* Automatically animates the panorama.
+	* @private
+	* @return {void}
 	**/
 
 	var anim = function() {
 		if (anim_delay !== false)
 			anim_timeout = setTimeout(startAutorotate, anim_delay);
-	}
+	};
 
 	/**
-	* Automatically rotates the panorama
-	* @return (void)
+	* Automatically rotates the panorama.
+	* @private
+	* @return {void}
 	**/
 
 	var autorotate = function() {
@@ -445,21 +551,30 @@ var PhotoSphereViewer = function(args) {
 
 		render();
 		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
-	}
+	};
 
 	/**
-	 * Starts the autorotate animation
-	 * @return (void)
+	 * Starts the autorotate animation.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var startAutorotate = function() {
 		autorotate();
+
+		/**
+		 * Indicates that the autorotate animation state has changed.
+		 * @callback PhotoSphereViewer~onAutorotateChanged
+		 * @param {boolean} enabled - `true` if animation is enabled, `false` otherwise
+		 **/
+
 		triggerAction('autorotate', true);
-	}
+	};
 
 	/**
-	 * Stops the autorotate animation
-	 * @return (void)
+	 * Stops the autorotate animation.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var stopAutorotate = function() {
@@ -470,11 +585,12 @@ var PhotoSphereViewer = function(args) {
 		autorotate_timeout = null;
 
 		triggerAction('autorotate', false);
-	}
+	};
 
 	/**
-	 * Launches/stops the autorotate animation
-	 * @return (void)
+	 * Launches/stops the autorotate animation.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.toggleAutorotate = function() {
@@ -485,11 +601,12 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			startAutorotate();
-	}
+	};
 
 	/**
-	 * Resizes the canvas to make it fit the container
-	 * @return (void)
+	 * Resizes the canvas to make it fit the container.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var fitToContainer = function() {
@@ -499,14 +616,25 @@ var PhotoSphereViewer = function(args) {
 				height: container.clientHeight
 			});
 		}
-	}
+	};
 
 	/**
-	 * Resizes the canvas
-	 * @param size (Object) New dimensions
-	 * - width (integer) (optional) (previous value) The new canvas width
-	 * - height (integer) (optional) (previous valus) The new canvas height
-	 * @return (void)
+	 * Resizes the canvas to make it fit the container.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.fitToContainer = function() {
+		fitToContainer();
+	};
+
+	/**
+	 * Resizes the canvas.
+	 * @private
+	 * @param {object} size - New dimensions
+	 * @param {number} [size.width] - The new canvas width (default to previous width)
+	 * @param {number} [size.height] - The new canvas height (default to previous height)
+	 * @return {void}
 	 **/
 
 	var resize = function(size) {
@@ -523,22 +651,29 @@ var PhotoSphereViewer = function(args) {
 			renderer.setSize(viewer_size.width, viewer_size.height);
 			render();
 		}
-	}
+
+		if (!!stereo_effect) {
+			stereo_effect.setSize(viewer_size.width, viewer_size.height);
+			render();
+		}
+	};
 
 	/**
-	 * The user wants to move
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to move.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseDown = function(evt) {
 		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
-	 * The user wants to move or to zoom (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to move or to zoom (mobile version).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onTouchStart = function(evt) {
@@ -556,13 +691,17 @@ var PhotoSphereViewer = function(args) {
 			if (evt.touches[0].target.parentNode == canvas_container && evt.touches[1].target.parentNode == canvas_container)
 				startTouchZoom(dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY));
 		}
-	}
+
+		// Show navigation bar if hidden
+		showNavbar();
+	};
 
 	/**
-	 * Initializes the movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
+	 * Initializes the movement.
+	 * @private
+	 * @param {integer} x - Horizontal coordinate
+	 * @param {integer} y - Vertical coordinate
+	 * @return {void}
 	 **/
 
 	var startMove = function(x, y) {
@@ -572,46 +711,50 @@ var PhotoSphereViewer = function(args) {
 		stopAutorotate();
 
 		mousedown = true;
-	}
+	};
 
 	/**
-	 * Initializes the "pinch to zoom" action
-	 * @param d (number) Square of the distance between the two fingers
-	 * @return (void)
+	 * Initializes the "pinch to zoom" action.
+	 * @private
+	 * @param {number} d - Square of the distance between the two fingers
+	 * @return {void}
 	 **/
 
 	var startTouchZoom = function(d) {
 		touchzoom_dist = d;
 
 		touchzoom = true;
-	}
+	};
 
 	/**
-	 * The user wants to stop moving (or stop zooming with their finger)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to stop moving (or stop zooming with their finger).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseUp = function(evt) {
 		mousedown = false;
 		touchzoom = false;
-	}
+	};
 
 	/**
-	 * The user moves the image
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user moves the image.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseMove = function(evt) {
 		evt.preventDefault();
 		move(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
-	 * The user moves the image (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user moves the image (mobile version).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onTouchMove = function(evt) {
@@ -641,13 +784,14 @@ var PhotoSphereViewer = function(args) {
 				}
 			}
 		}
-	}
+	};
 
 	/**
-	 * Movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
+	 * Movement.
+	 * @private
+	 * @param {integer} x - Horizontal coordinate
+	 * @param {integer} y - Vertical coordinate
+	 * @return {void}
 	 **/
 
 	var move = function(x, y) {
@@ -660,12 +804,74 @@ var PhotoSphereViewer = function(args) {
 			mouse_y = y;
 			render();
 		}
-	}
+	};
 
 	/**
-	 * The user wants to zoom
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * Starts following the device orientation.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var startDeviceOrientation = function() {
+		sphoords.start();
+		stopAutorotate();
+
+		/**
+		 * Indicates that we starts/stops following the device orientation.
+		 * @callback PhotoSphereViewer~onDeviceOrientationStateChanged
+		 * @param {boolean} state - `true` if device orientation is followed, `false` otherwise
+		 **/
+
+		triggerAction('device-orientation', true);
+	};
+
+	/**
+	 * Stops following the device orientation.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var stopDeviceOrientation = function() {
+		sphoords.stop();
+
+		triggerAction('device-orientation', false);
+	};
+
+	/**
+	 * Starts/stops following the device orientation.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.toggleDeviceOrientation = function() {
+		if (sphoords.isEventAttached())
+			stopDeviceOrientation();
+
+		else
+			startDeviceOrientation();
+	};
+
+	/**
+	* The user moved their device.
+	* @private
+	* @param {object} coords - The spherical coordinates to look at
+	* @param {number} coords.longitude - The longitude
+	* @param {number} coords.latitude - The latitude
+	* @return {void}
+	**/
+
+	var onDeviceOrientation = function(coords) {
+		long = coords.longitude;
+		lat = stayBetween(coords.latitude, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+
+		render();
+	};
+
+	/**
+	 * The user wants to zoom.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseWheel = function(evt) {
@@ -678,12 +884,13 @@ var PhotoSphereViewer = function(args) {
 			var direction = parseInt(delta / Math.abs(delta));
 			zoom(zoom_lvl + direction);
 		}
-	}
+	};
 
 	/**
-	 * Zoom
-	 * @paramlevel (integer) New zoom level
-	 * @return (void)
+	 * Sets the new zoom level.
+	 * @private
+	 * @param {integer} level - New zoom level
+	 * @return {void}
 	 **/
 
 	var zoom = function(level) {
@@ -693,50 +900,62 @@ var PhotoSphereViewer = function(args) {
 		camera.updateProjectionMatrix();
 		render();
 
+		/**
+		 * Indicates that the zoom level has changed.
+		 * @callback PhotoSphereViewer~onZoomUpdated
+		 * @param {number} zoom_level - The new zoom level
+		 **/
+
 		triggerAction('zoom-updated', zoom_lvl);
-	}
+	};
 
 	/**
-	 * Zoom (public)
-	 * @param level (integer) New zoom level
-	 * @return (void)
+	 * Sets the new zoom level.
+	 * @public
+	 * @param {integer} level - New zoom level
+	 * @return {void}
 	 **/
+
 	this.zoom = function(level) {
 		zoom(level);
-	}
+	};
 
 	/**
-	 * Zoom in
-	 * @return (void)
+	 * Zoom in.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.zoomIn = function() {
 		if (zoom_lvl < 100)
 			zoom(zoom_lvl + 1);
-	}
+	};
 
 	/**
-	 * Zoom out
-	 * @return (void)
+	 * Zoom out.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.zoomOut = function() {
 		if (zoom_lvl > 0)
 			zoom(zoom_lvl - 1);
-	}
+	};
 
 	/**
-	 * Detects whether fullscreen is enabled or not
-	 * @return (boolean) true if fullscreen is enabled, false otherwise
+	 * Detects whether fullscreen is enabled or not.
+	 * @private
+	 * @return {boolean} `true` if fullscreen is enabled, `false` otherwise
 	 **/
 
 	var isFullscreenEnabled = function() {
 		return (!!document.fullscreenElement || !!document.mozFullScreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement);
-	}
+	};
 
 	/**
-	 * Fullscreen state has changed
-	 * @return (void)
+	 * Fullscreen state has changed.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var fullscreenToggled = function() {
@@ -756,49 +975,87 @@ var PhotoSphereViewer = function(args) {
 			fitToContainer();
 		}
 
+		/**
+		 * Indicates that the fullscreen mode has been toggled.
+		 * @callback PhotoSphereViewer~onFullscreenToggled
+		 * @param {boolean} enabled - `true` if fullscreen is enabled, `false` otherwise
+		 **/
+
 		triggerAction('fullscreen-mode', isFullscreenEnabled());
-	}
+	};
 
 	/**
-	 * Enables/disables fullscreen
-	 * @return (void)
+	 * Enables fullscreen.
+	 * @private
+	 * @return {void}
 	 **/
+
+	var enableFullscreen = function() {
+		if (!!container.requestFullscreen)
+			container.requestFullscreen();
+
+		else if (!!container.mozRequestFullScreen)
+			container.mozRequestFullScreen();
+
+		else if (!!container.webkitRequestFullscreen)
+			container.webkitRequestFullscreen();
+
+		else if (!!container.msRequestFullscreen)
+			container.msRequestFullscreen();
+	};
+
+	/**
+	 * Disables fullscreen.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var disableFullscreen = function() {
+		if (!!document.exitFullscreen)
+			document.exitFullscreen();
+
+		else if (!!document.mozCancelFullScreen)
+			document.mozCancelFullScreen();
+
+		else if (!!document.webkitExitFullscreen)
+			document.webkitExitFullscreen();
+
+		else if (!!document.msExitFullscreen)
+			document.msExitFullscreen();
+	};
+
+	/**
+	 * Enables/disables fullscreen.
+	 * @public
+	 * @return {void}
+	 **/
+
 	this.toggleFullscreen = function() {
 		// Switches to fullscreen mode
-		if (!isFullscreenEnabled()) {
-			if (!!container.requestFullscreen)
-				container.requestFullscreen();
-
-			else if (!!container.mozRequestFullScreen)
-				container.mozRequestFullScreen();
-
-			else if (!!container.webkitRequestFullscreen)
-				container.webkitRequestFullscreen();
-
-			else if (!!container.msRequestFullscreen)
-				container.msRequestFullscreen();
-		}
+		if (!isFullscreenEnabled())
+			enableFullscreen();
 
 		// Switches to windowed mode
-		else {
-			if (!!document.exitFullscreen)
-				document.exitFullscreen();
-
-			else if (!!document.mozCancelFullScreen)
-				document.mozCancelFullScreen();
-
-			else if (!!document.webkitExitFullscreen)
-				document.webkitExitFullscreen();
-
-			else if (!!document.msExitFullscreen)
-				document.msExitFullscreen();
-		}
-	}
+		else
+			disableFullscreen();
+	};
 
 	/**
-	 * Sets the animation speed
-	 * @param speed (string) The speed, in radians/degrees/revolutions per second/minute
-	 * @return (void)
+	 * Shows the navigation bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var showNavbar = function() {
+		if (display_navbar)
+			navbar.show();
+	};
+
+	/**
+	 * Sets the animation speed.
+	 * @private
+	 * @param {string} speed - The speed, in radians/degrees/revolutions per second/minute
+	 * @return {void}
 	 **/
 
 	var setAnimSpeed = function(speed) {
@@ -853,12 +1110,35 @@ var PhotoSphereViewer = function(args) {
 
 		// Longitude offset
 		long_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
-	}
+	};
 
 	/**
-	 * Sets the viewer size
-	 * @param size (Object) An object containing the wanted width and height
-	 * @return (void)
+	 * Parses an angle given in radians or degrees.
+	 * @private
+	 * @param {number|string} angle - Angle in radians (number) or in degrees (string)
+	 * @return {number} The angle in radians
+	 **/
+
+	var parseAngle = function(angle) {
+		angle = angle.toString().trim();
+
+		// Angle extraction
+		var angle_value = parseFloat(angle.replace(/^(-?[0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+		var angle_unit = angle.replace(/^-?[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+		// Degrees
+		if (angle_unit == 'deg')
+			angle_value *= Math.PI / 180;
+
+		// Radians by default, we don't have anyting to do
+		return getAngleMeasure(angle_value);
+	};
+
+	/**
+	 * Sets the viewer size.
+	 * @private
+	 * @param {object} size - An object containing the wanted width and height
+	 * @return {void}
 	 **/
 
 	var setNewViewerSize = function(size) {
@@ -883,13 +1163,14 @@ var PhotoSphereViewer = function(args) {
 					};
 			}
 		}
-	}
+	};
 
 	/**
-	 * Adds an action
-	 * @param name (string) Action name
-	 * @param f (Function) The handler function
-	 * @return (void)
+	 * Adds a function to execute when a given action occurs.
+	 * @public
+	 * @param {string} name - The action name
+	 * @param {function} f - The handler function
+	 * @return {void}
 	 **/
 
 	this.addAction = function(name, f) {
@@ -898,18 +1179,19 @@ var PhotoSphereViewer = function(args) {
 			actions[name] = [];
 
 		actions[name].push(f);
-	}
+	};
 
 	/**
-	 * Triggers an action
-	 * @param name (string) Action name
-	 * @param arg (mixed) An argument to send to the handler functions
-	 * @return (void)
+	 * Triggers an action.
+	 * @private
+	 * @param {string} name - Action name
+	 * @param {*} arg - An argument to send to the handler functions
+	 * @return {void}
 	 **/
 
 	var triggerAction = function(name, arg) {
 		// Does the action have any function?
-		if ((name in actions) && actions[name].length > 0) {
+		if ((name in actions) && !!actions[name].length) {
 			for (var i = 0, l = actions[name].length; i < l; ++i) {
 				if (arg !== undefined)
 					actions[name][i](arg);
@@ -918,7 +1200,7 @@ var PhotoSphereViewer = function(args) {
 					actions[name][i]();
 			}
 		}
-	}
+	};
 
 	// Required parameters
 	if (args === undefined || args.panorama === undefined || args.container === undefined) {
@@ -935,18 +1217,18 @@ var PhotoSphereViewer = function(args) {
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
 
 	// Maximal tilt up / down angles
-	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? parseFloat(args.tilt_up_max) : Math.PI / 2.0;
-	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -parseFloat(args.tilt_down_max) : -Math.PI / 2.0;
+	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? stayBetween(parseAngle(args.tilt_up_max), 0, Math.PI / 2.0) : Math.PI / 2.0;
+	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -stayBetween(parseAngle(args.tilt_down_max), 0, Math.PI / 2.0) : -Math.PI / 2.0;
 
 	// Default position
 	var lat = 0, long = 0;
 
 	if (args.default_position !== undefined) {
 		if (args.default_position.lat !== undefined)
-			lat = getAngleMeasure(parseFloat(args.default_position.lat));
+			lat = stayBetween(parseAngle(args.default_position.lat), PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 		if (args.default_position.long !== undefined)
-			long = getAngleMeasure(parseFloat(args.default_position.long));
+			long = parseAngle(args.default_position.long);
 	}
 
 	// Default zoom level
@@ -988,6 +1270,12 @@ var PhotoSphereViewer = function(args) {
 	// Style of the navigation bar
 	var navbar_style = (args.navbar_style !== undefined) ? args.navbar_style : {};
 
+	// Are user interactions allowed?
+	var user_interactions_allowed = (args.allow_user_interactions !== undefined) ? !!args.allow_user_interactions : true;
+
+	if (!user_interactions_allowed)
+		display_navbar = false;
+
 	// Container
 	var container = args.container;
 
@@ -999,18 +1287,23 @@ var PhotoSphereViewer = function(args) {
 	// Some useful attributes
 	var panorama = args.panorama;
 	var root, canvas_container;
-	var renderer = null, scene = null, camera = null;
+	var renderer = null, scene = null, camera = null, stereo_effect = null;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
 	var touchzoom = false, touchzoom_dist = 0;
 	var autorotate_timeout = null, anim_timeout = null;
+
+	var sphoords = new Sphoords();
 
 	var actions = {};
 
 	// Must we read XMP data?
 	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
 
-	// Loading indicator
-	var loading_img = (args.loading_img !== undefined) ? args.loading_img : null;
+	// Loading message
+	var loading_msg = (args.loading_msg !== undefined) ? args.loading_msg.toString() : 'Loading…';
+
+	// Loading image
+	var loading_img = (args.loading_img !== undefined) ? args.loading_img.toString() : null;
 
 	// Function to call once panorama is ready?
 	if (args.onready !== undefined)
@@ -1021,4 +1314,4 @@ var PhotoSphereViewer = function(args) {
 
 	if (autoload)
 		this.load();
-}
+};

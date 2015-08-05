@@ -1,80 +1,101 @@
 /*
-* Photo Sphere Viewer v2.2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * Photo Sphere Viewer v2.3
+ * http://jeremyheleine.me/photo-sphere-viewer
+ *
+ * Copyright (c) 2014,2015 Jérémy Heleine
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 /**
- * Viewer class
- * @param args (Object) Viewer settings
- * - panorama (string) Panorama URL or path (absolute or relative)
- * - container (HTMLElement) Panorama container (should be a div or equivalent)
- * - autoload (boolean) (optional) (true) true to automatically load the panorama, false to load it later (with the .load() method)
- * - usexmpdata (boolean) (optional) (true) true if Photo Sphere Viewer must read XMP data, false if it is not necessary
- * - default_position (Object) (optional) ({}) Defines the default position, the first point seen by the user (e.g. {long: Math.PI, lat: Math.PI/2})
- * - min_fov (number) (optional) (30) The minimal field of view, in degrees, between 1 and 179
- * - max_fov (number) (optional) (90) The maximal field of view, in degrees, between 1 and 179
- * - tilt_up_max (number) (optional) (Math.PI/2) The maximal tilt up angle, in radians
- * - tilt_down_max (number) (optional) (Math.PI/2) The maximal tilt down angle, in radians
- * - zoom_level (number) (optional) (0) The default zoom level, between 0 and 100
- * - long_offset (number) (optional) (PI/360) The longitude to travel per pixel moved by mouse/touch
- * - lat_offset (number) (optional) (PI/180) The latitude to travel per pixel moved by mouse/touch
- * - time_anim (integer) (optional) (2000) Delay before automatically animating the panorama in milliseconds, false to not animate
- * - theta_offset (integer) (optional) (1440) (deprecated) The PI fraction to add to theta during the animation
- * - anim_speed (string) (optional) (2rpm) Animation speed in radians/degrees/revolutions per second/minute
- * - navbar (boolean) (optional) (false) Display the navigation bar if set to true
- * - navbar_style (Object) (optional) ({}) Style of the navigation bar
- * - loading_img (string) (optional) (null) Loading image URL or path (absolute or relative)
- * - size (Object) (optional) (null) Final size of the panorama container (e.g. {width: 500, height: 300})
- * - onready (Function) (optional) (null) Function called once the panorama is ready and the first image is displayed
+ * Represents a panorama viewer.
+ * @class
+ * @param {object} args - Settings to apply to the viewer
+ * @param {string} args.panorama - Panorama URL or path (absolute or relative)
+ * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
+ * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
+ * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
+ * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
+ * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
+ * @param {number} [args.min_fov=30] - The minimal field of view, in degrees, between 1 and 179
+ * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
+ * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
+ * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
+ * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
+ * @param {number} [args.zoom_level=0] - The default zoom level, between 0 and 100
+ * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
+ * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
+ * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
+ * @param {integer} [args.theta_offset=1440] - (deprecated, use `anim_speed` instead) The π fraction to add to theta during the animation
+ * @param {string} [args.anim_speed=2rpm] - Animation speed in radians/degrees/revolutions per second/minute
+ * @param {boolean} [args.navbar=false] - Display the navigation bar if set to `true`
+ * @param {object} [args.navbar_style] - Style of the navigation bar
+ * @param {string} [args.navbar_style.backgroundColor=rgba(61, 61, 61, 0.5)] - Navigation bar background color
+ * @param {string} [args.navbar_style.buttonsColor=rgba(255, 255, 255, 0.7)] - Buttons foreground color
+ * @param {string} [args.navbar_style.buttonsBackgroundColor=transparent] - Buttons background color
+ * @param {string} [args.navbar_style.activeButtonsBackgroundColor=rgba(255, 255, 255, 0.1)] - Active buttons background color
+ * @param {number} [args.navbar_style.buttonsHeight=20] - Buttons height in pixels
+ * @param {number} [args.navbar_style.autorotateThickness=1] - Autorotate icon thickness in pixels
+ * @param {number} [args.navbar_style.zoomRangeWidth=50] - Zoom range width in pixels
+ * @param {number} [args.navbar_style.zoomRangeThickness=1] - Zoom range thickness in pixels
+ * @param {number} [args.navbar_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
+ * @param {number} [args.navbar_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width/height)
+ * @param {number} [args.navbar_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+ * @param {string} [args.loading_msg=Loading…] - Loading message
+ * @param {string} [args.loading_img=null] - Loading image URL or path (absolute or relative)
+ * @param {object} [args.size] - Final size of the panorama container (e.g. {width: 500, height: 300})
+ * @param {(number|string)} [args.size.width] - Final width in percentage (e.g. `'50%'`) or pixels (e.g. `500` or `'500px'`) ; default to current width
+ * @param {(number|string)} [args.size.height] - Final height in percentage or pixels ; default to current height
+ * @param {PhotoSphereViewer~onReady} [args.onready] - Function called once the panorama is ready and the first image is displayed
  **/
 
 var PhotoSphereViewer = function(args) {
 	/**
-	 * Detects whether canvas is supported
-	 * @return (boolean) true if canvas is supported, false otherwise
+	 * Detects whether canvas is supported.
+	 * @private
+	 * @return {boolean} `true` if canvas is supported, `false` otherwise
 	 **/
 
 	var isCanvasSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(canvas.getContext && canvas.getContext('2d'));
-	}
+	};
 
 	/**
-	 * Detects whether WebGL is supported
-	 * @return (boolean) true if WebGL is supported, false otherwise
+	 * Detects whether WebGL is supported.
+	 * @private
+	 * @return {boolean} `true` if WebGL is supported, `false` otherwise
 	 **/
 
 	var isWebGLSupported = function() {
 		var canvas = document.createElement('canvas');
 		return !!(window.WebGLRenderingContext && canvas.getContext('webgl'));
-	}
+	};
 
 	/**
-	 * Attaches an event handler function to an elemnt
-	 * @param elt (HTMLElement) The element
-	 * @param evt (string) The event name
-	 * @param f (Function) The handler function
-	 * @return (void)
+	 * Attaches an event handler function to an element.
+	 * @private
+	 * @param {HTMLElement} elt - The element
+	 * @param {string} evt - The event name
+	 * @param {function} f - The handler function
+	 * @return {void}
 	 **/
 
 	var addEvent = function(elt, evt, f) {
@@ -82,48 +103,52 @@ var PhotoSphereViewer = function(args) {
 			elt.addEventListener(evt, f, false);
 		else
 			elt.attachEvent('on' + evt, f);
-	}
+	};
 
 	/**
-	 * Ensures that a number is in a given interval
-	 * @param x (number) The number to check
-	 * @param min (number) First endpoint
-	 * @param max (number) Second endpoint
-	 * @return (number) The checked number
+	 * Ensures that a number is in a given interval.
+	 * @private
+	 * @param {number} x - The number to check
+	 * @param {number} min - First endpoint
+	 * @param {number} max - Second endpoint
+	 * @return {number} The checked number
 	 **/
 
 	var stayBetween = function(x, min, max) {
 		return Math.max(min, Math.min(max, x));
-	}
+	};
 
 	/**
-	 * Calculates the distance between two points (square of the distance is enough)
-	 * @param x1 (number) Horizontal coordinate (first point)
-	 * @param y1 (number) Vertical coordinate (first point)
-	 * @param x2 (number) Horizontal coordinate (second point)
-	 * @param y2 (number) Vertical coordinate (second point)
-	 * @return (number) Squar of the wanted distance
+	 * Calculates the distance between two points (square of the distance is enough).
+	 * @private
+	 * @param {number} x1 - First point horizontal coordinate
+	 * @param {number} y1 - First point vertical coordinate
+	 * @param {number} x2 - Second point horizontal coordinate
+	 * @param {number} y2 - Second point vertical coordinate
+	 * @return {number} Square of the wanted distance
 	 **/
 
 	var dist = function(x1, y1, x2, y2) {
 		var x = x2 - x1;
 		var y = y2 - y1;
 		return x*x + y*y;
-	}
+	};
 
 	/**
-	 * Returns the measure of an angle (between 0 and 2π)
-	 * @param angle (number) The angle to reduce
-	 * @return (number) The wanted measure
+	 * Returns the measure of an angle (between 0 and 2π).
+	 * @private
+	 * @param {number} angle - The angle to reduce
+	 * @return {number} The wanted measure
 	 **/
 
 	var getAngleMeasure = function(angle) {
 		return angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
-	}
+	};
 
 	/**
-	 * Starts to load the panorama
-	 * @return (void)
+	 * Starts to load the panorama.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.load = function() {
@@ -131,17 +156,18 @@ var PhotoSphereViewer = function(args) {
 		if (!!loading_img) {
 			var loading = document.createElement('img');
 			loading.setAttribute('src', loading_img);
-			loading.setAttribute('alt', 'Loading...');
+			loading.setAttribute('alt', loading_msg);
 			container.appendChild(loading);
 		}
 		else
-			container.textContent = 'Loading...';
+			container.textContent = loading_msg;
 
 		// Adds a new container
 		root = document.createElement('div');
 		root.style.width = '100%';
 		root.style.height = '100%';
 		root.style.position = 'relative';
+		root.style.overflow = 'hidden';
 
 		// Is canvas supported?
 		if (!isCanvasSupported()) {
@@ -168,23 +194,25 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			createBuffer(false);
-	}
+	};
 
 	/**
-	 * Returns the value of a given attribute in the panorama metadata
-	 * @param data (string) The panorama metadata
-	 * @param attr (string) The wanted attribute
-	 * @return (string) The value of the attribute
+	 * Returns the value of a given attribute in the panorama metadata.
+	 * @private
+	 * @param {string} data - The panorama metadata
+	 * @param {string} attr - The wanted attribute
+	 * @return {string} The value of the attribute
 	 **/
 
 	var getAttribute = function(data, attr) {
 		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
 		return data.substring(a, b);
-	}
+	};
 
 	/**
-	 * Loads the XMP data with AJAX
-	 * @return (void)
+	 * Loads the XMP data with AJAX.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var loadXMP = function() {
@@ -236,12 +264,13 @@ var PhotoSphereViewer = function(args) {
 
 		xhr.open('GET', panorama, true);
 		xhr.send(null);
-	}
+	};
 
 	/**
-	 * Creates an image in the right dimensions
-	 * @param pano_data (mixed) An object containing the panorama XMP data (false if it there is not)
-	 * @return (void)
+	 * Creates an image in the right dimensions.
+	 * @private
+	 * @param {mixed} pano_data - An object containing the panorama XMP data (`false` if there is not)
+	 * @return {void}
 	 **/
 
 	var createBuffer = function(pano_data) {
@@ -299,12 +328,13 @@ var PhotoSphereViewer = function(args) {
 			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
-	}
+	};
 
 	/**
-	 * Loads the sphere texture
-	 * @param path (URL) Path to the panorama
-	 * @return (void)
+	 * Loads the sphere texture.
+	 * @private
+	 * @param {string} path - Path to the panorama
+	 * @return {void}
 	 **/
 
 	var loadTexture = function(path) {
@@ -319,12 +349,13 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		loader.load(path, onLoad);
-	}
+	};
 
 	/**
-	 * Creates the 3D scene
-	 * @param texture (THREE.Texture) The sphere texture
-	 * @return (void)
+	 * Creates the 3D scene.
+	 * @private
+	 * @param {THREE.Texture} texture - The sphere texture
+	 * @return {void}
 	 **/
 
 	var createScene = function(texture) {
@@ -370,19 +401,26 @@ var PhotoSphereViewer = function(args) {
 		// Adding events
 		addEvent(window, 'resize', fitToContainer);
 
-		addEvent(canvas_container, 'mousedown', onMouseDown);
-		addEvent(canvas_container, 'touchstart', onTouchStart);
-		addEvent(document, 'mouseup', onMouseUp);
-		addEvent(document, 'touchend', onMouseUp);
-		addEvent(document, 'mousemove', onMouseMove);
-		addEvent(document, 'touchmove', onTouchMove);
-		addEvent(canvas_container, 'mousewheel', onMouseWheel);
-		addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+		if (user_interactions_allowed) {
+			addEvent(canvas_container, 'mousedown', onMouseDown);
+			addEvent(document, 'mousemove', onMouseMove);
+			addEvent(canvas_container, 'mousemove', showNavbar);
+			addEvent(document, 'mouseup', onMouseUp);
+
+			addEvent(canvas_container, 'touchstart', onTouchStart);
+			addEvent(document, 'touchend', onMouseUp);
+			addEvent(document, 'touchmove', onTouchMove);
+
+			addEvent(canvas_container, 'mousewheel', onMouseWheel);
+			addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
 		addEvent(document, 'mozfullscreenchange', fullscreenToggled);
 		addEvent(document, 'webkitfullscreenchange', fullscreenToggled);
 		addEvent(document, 'MSFullscreenChange', fullscreenToggled);
+
+		sphoords.addListener(onDeviceOrientation);
 
 		// First render
 		container.innerHTML = '';
@@ -401,13 +439,18 @@ var PhotoSphereViewer = function(args) {
 		// Animation?
 		anim();
 
-		// Panorama is ready
+		/**
+		 * Indicates that the loading is finished: the first image is rendered
+		 * @callback PhotoSphereViewer~onReady
+		 **/
+
 		triggerAction('ready');
-	}
+	};
 
 	/**
-	* Renders an image
-	* @return (void)
+	* Renders an image.
+	* @private
+	* @return {void}
 	**/
 
 	var render = function() {
@@ -417,22 +460,85 @@ var PhotoSphereViewer = function(args) {
 		point.setZ(Math.cos(lat) * Math.cos(long));
 
 		camera.lookAt(point);
-		renderer.render(scene, camera);
-	}
+
+		// Stereo?
+		if (stereo_effect !== null)
+			stereo_effect.render(scene, camera);
+
+		else
+			renderer.render(scene, camera);
+	};
 
 	/**
-	* Automatically animates the panorama
-	* @return (void)
+	 * Starts the stereo effect.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var startStereo = function() {
+		stereo_effect = new THREE.StereoEffect(renderer);
+		stereo_effect.eyeSeparation = 5;
+		stereo_effect.setSize(viewer_size.width, viewer_size.height);
+
+		startDeviceOrientation();
+		enableFullscreen();
+		navbar.mustBeHidden();
+		render();
+
+		/**
+		 * Indicates that the stereo effect has been toggled.
+		 * @callback PhotoSphereViewer~onStereoEffectToggled
+		 * @param {boolean} enabled - `true` if stereo effect is enabled, `false` otherwise
+		 **/
+
+		triggerAction('stereo-effect', true);
+	};
+
+	/**
+	 * Stops the stereo effect.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var stopStereo = function() {
+		stereo_effect = null;
+		renderer.setSize(viewer_size.width, viewer_size.height);
+
+		navbar.mustBeHidden(false);
+		render();
+
+		triggerAction('stereo-effect', false);
+	};
+
+	/**
+	 * Toggles the stereo effect (virtual reality).
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.toggleStereo = function() {
+		if (stereo_effect !== null)
+			stopStereo();
+
+		else
+			startStereo();
+	};
+
+	/**
+	* Automatically animates the panorama.
+	* @private
+	* @return {void}
 	**/
 
 	var anim = function() {
 		if (anim_delay !== false)
 			anim_timeout = setTimeout(startAutorotate, anim_delay);
-	}
+	};
 
 	/**
-	* Automatically rotates the panorama
-	* @return (void)
+	* Automatically rotates the panorama.
+	* @private
+	* @return {void}
 	**/
 
 	var autorotate = function() {
@@ -445,21 +551,30 @@ var PhotoSphereViewer = function(args) {
 
 		render();
 		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
-	}
+	};
 
 	/**
-	 * Starts the autorotate animation
-	 * @return (void)
+	 * Starts the autorotate animation.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var startAutorotate = function() {
 		autorotate();
+
+		/**
+		 * Indicates that the autorotate animation state has changed.
+		 * @callback PhotoSphereViewer~onAutorotateChanged
+		 * @param {boolean} enabled - `true` if animation is enabled, `false` otherwise
+		 **/
+
 		triggerAction('autorotate', true);
-	}
+	};
 
 	/**
-	 * Stops the autorotate animation
-	 * @return (void)
+	 * Stops the autorotate animation.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var stopAutorotate = function() {
@@ -470,11 +585,12 @@ var PhotoSphereViewer = function(args) {
 		autorotate_timeout = null;
 
 		triggerAction('autorotate', false);
-	}
+	};
 
 	/**
-	 * Launches/stops the autorotate animation
-	 * @return (void)
+	 * Launches/stops the autorotate animation.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.toggleAutorotate = function() {
@@ -485,11 +601,12 @@ var PhotoSphereViewer = function(args) {
 
 		else
 			startAutorotate();
-	}
+	};
 
 	/**
-	 * Resizes the canvas to make it fit the container
-	 * @return (void)
+	 * Resizes the canvas to make it fit the container.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var fitToContainer = function() {
@@ -499,14 +616,25 @@ var PhotoSphereViewer = function(args) {
 				height: container.clientHeight
 			});
 		}
-	}
+	};
 
 	/**
-	 * Resizes the canvas
-	 * @param size (Object) New dimensions
-	 * - width (integer) (optional) (previous value) The new canvas width
-	 * - height (integer) (optional) (previous valus) The new canvas height
-	 * @return (void)
+	 * Resizes the canvas to make it fit the container.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.fitToContainer = function() {
+		fitToContainer();
+	};
+
+	/**
+	 * Resizes the canvas.
+	 * @private
+	 * @param {object} size - New dimensions
+	 * @param {number} [size.width] - The new canvas width (default to previous width)
+	 * @param {number} [size.height] - The new canvas height (default to previous height)
+	 * @return {void}
 	 **/
 
 	var resize = function(size) {
@@ -523,22 +651,29 @@ var PhotoSphereViewer = function(args) {
 			renderer.setSize(viewer_size.width, viewer_size.height);
 			render();
 		}
-	}
+
+		if (!!stereo_effect) {
+			stereo_effect.setSize(viewer_size.width, viewer_size.height);
+			render();
+		}
+	};
 
 	/**
-	 * The user wants to move
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to move.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseDown = function(evt) {
 		startMove(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
-	 * The user wants to move or to zoom (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to move or to zoom (mobile version).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onTouchStart = function(evt) {
@@ -556,13 +691,17 @@ var PhotoSphereViewer = function(args) {
 			if (evt.touches[0].target.parentNode == canvas_container && evt.touches[1].target.parentNode == canvas_container)
 				startTouchZoom(dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY));
 		}
-	}
+
+		// Show navigation bar if hidden
+		showNavbar();
+	};
 
 	/**
-	 * Initializes the movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
+	 * Initializes the movement.
+	 * @private
+	 * @param {integer} x - Horizontal coordinate
+	 * @param {integer} y - Vertical coordinate
+	 * @return {void}
 	 **/
 
 	var startMove = function(x, y) {
@@ -572,46 +711,50 @@ var PhotoSphereViewer = function(args) {
 		stopAutorotate();
 
 		mousedown = true;
-	}
+	};
 
 	/**
-	 * Initializes the "pinch to zoom" action
-	 * @param d (number) Square of the distance between the two fingers
-	 * @return (void)
+	 * Initializes the "pinch to zoom" action.
+	 * @private
+	 * @param {number} d - Square of the distance between the two fingers
+	 * @return {void}
 	 **/
 
 	var startTouchZoom = function(d) {
 		touchzoom_dist = d;
 
 		touchzoom = true;
-	}
+	};
 
 	/**
-	 * The user wants to stop moving (or stop zooming with their finger)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user wants to stop moving (or stop zooming with their finger).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseUp = function(evt) {
 		mousedown = false;
 		touchzoom = false;
-	}
+	};
 
 	/**
-	 * The user moves the image
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user moves the image.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseMove = function(evt) {
 		evt.preventDefault();
 		move(parseInt(evt.clientX), parseInt(evt.clientY));
-	}
+	};
 
 	/**
-	 * The user moves the image (mobile version)
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * The user moves the image (mobile version).
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onTouchMove = function(evt) {
@@ -641,13 +784,14 @@ var PhotoSphereViewer = function(args) {
 				}
 			}
 		}
-	}
+	};
 
 	/**
-	 * Movement
-	 * @param x (integer) Horizontal coordinate
-	 * @param y (integer) Vertical coordinate
-	 * @return (void)
+	 * Movement.
+	 * @private
+	 * @param {integer} x - Horizontal coordinate
+	 * @param {integer} y - Vertical coordinate
+	 * @return {void}
 	 **/
 
 	var move = function(x, y) {
@@ -660,12 +804,74 @@ var PhotoSphereViewer = function(args) {
 			mouse_y = y;
 			render();
 		}
-	}
+	};
 
 	/**
-	 * The user wants to zoom
-	 * @param evt (Event) The event
-	 * @return (void)
+	 * Starts following the device orientation.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var startDeviceOrientation = function() {
+		sphoords.start();
+		stopAutorotate();
+
+		/**
+		 * Indicates that we starts/stops following the device orientation.
+		 * @callback PhotoSphereViewer~onDeviceOrientationStateChanged
+		 * @param {boolean} state - `true` if device orientation is followed, `false` otherwise
+		 **/
+
+		triggerAction('device-orientation', true);
+	};
+
+	/**
+	 * Stops following the device orientation.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var stopDeviceOrientation = function() {
+		sphoords.stop();
+
+		triggerAction('device-orientation', false);
+	};
+
+	/**
+	 * Starts/stops following the device orientation.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.toggleDeviceOrientation = function() {
+		if (sphoords.isEventAttached())
+			stopDeviceOrientation();
+
+		else
+			startDeviceOrientation();
+	};
+
+	/**
+	* The user moved their device.
+	* @private
+	* @param {object} coords - The spherical coordinates to look at
+	* @param {number} coords.longitude - The longitude
+	* @param {number} coords.latitude - The latitude
+	* @return {void}
+	**/
+
+	var onDeviceOrientation = function(coords) {
+		long = coords.longitude;
+		lat = stayBetween(coords.latitude, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+
+		render();
+	};
+
+	/**
+	 * The user wants to zoom.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
 	 **/
 
 	var onMouseWheel = function(evt) {
@@ -678,12 +884,13 @@ var PhotoSphereViewer = function(args) {
 			var direction = parseInt(delta / Math.abs(delta));
 			zoom(zoom_lvl + direction);
 		}
-	}
+	};
 
 	/**
-	 * Zoom
-	 * @paramlevel (integer) New zoom level
-	 * @return (void)
+	 * Sets the new zoom level.
+	 * @private
+	 * @param {integer} level - New zoom level
+	 * @return {void}
 	 **/
 
 	var zoom = function(level) {
@@ -693,50 +900,62 @@ var PhotoSphereViewer = function(args) {
 		camera.updateProjectionMatrix();
 		render();
 
+		/**
+		 * Indicates that the zoom level has changed.
+		 * @callback PhotoSphereViewer~onZoomUpdated
+		 * @param {number} zoom_level - The new zoom level
+		 **/
+
 		triggerAction('zoom-updated', zoom_lvl);
-	}
+	};
 
 	/**
-	 * Zoom (public)
-	 * @param level (integer) New zoom level
-	 * @return (void)
+	 * Sets the new zoom level.
+	 * @public
+	 * @param {integer} level - New zoom level
+	 * @return {void}
 	 **/
+
 	this.zoom = function(level) {
 		zoom(level);
-	}
+	};
 
 	/**
-	 * Zoom in
-	 * @return (void)
+	 * Zoom in.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.zoomIn = function() {
 		if (zoom_lvl < 100)
 			zoom(zoom_lvl + 1);
-	}
+	};
 
 	/**
-	 * Zoom out
-	 * @return (void)
+	 * Zoom out.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.zoomOut = function() {
 		if (zoom_lvl > 0)
 			zoom(zoom_lvl - 1);
-	}
+	};
 
 	/**
-	 * Detects whether fullscreen is enabled or not
-	 * @return (boolean) true if fullscreen is enabled, false otherwise
+	 * Detects whether fullscreen is enabled or not.
+	 * @private
+	 * @return {boolean} `true` if fullscreen is enabled, `false` otherwise
 	 **/
 
 	var isFullscreenEnabled = function() {
 		return (!!document.fullscreenElement || !!document.mozFullScreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement);
-	}
+	};
 
 	/**
-	 * Fullscreen state has changed
-	 * @return (void)
+	 * Fullscreen state has changed.
+	 * @private
+	 * @return {void}
 	 **/
 
 	var fullscreenToggled = function() {
@@ -756,49 +975,87 @@ var PhotoSphereViewer = function(args) {
 			fitToContainer();
 		}
 
+		/**
+		 * Indicates that the fullscreen mode has been toggled.
+		 * @callback PhotoSphereViewer~onFullscreenToggled
+		 * @param {boolean} enabled - `true` if fullscreen is enabled, `false` otherwise
+		 **/
+
 		triggerAction('fullscreen-mode', isFullscreenEnabled());
-	}
+	};
 
 	/**
-	 * Enables/disables fullscreen
-	 * @return (void)
+	 * Enables fullscreen.
+	 * @private
+	 * @return {void}
 	 **/
+
+	var enableFullscreen = function() {
+		if (!!container.requestFullscreen)
+			container.requestFullscreen();
+
+		else if (!!container.mozRequestFullScreen)
+			container.mozRequestFullScreen();
+
+		else if (!!container.webkitRequestFullscreen)
+			container.webkitRequestFullscreen();
+
+		else if (!!container.msRequestFullscreen)
+			container.msRequestFullscreen();
+	};
+
+	/**
+	 * Disables fullscreen.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var disableFullscreen = function() {
+		if (!!document.exitFullscreen)
+			document.exitFullscreen();
+
+		else if (!!document.mozCancelFullScreen)
+			document.mozCancelFullScreen();
+
+		else if (!!document.webkitExitFullscreen)
+			document.webkitExitFullscreen();
+
+		else if (!!document.msExitFullscreen)
+			document.msExitFullscreen();
+	};
+
+	/**
+	 * Enables/disables fullscreen.
+	 * @public
+	 * @return {void}
+	 **/
+
 	this.toggleFullscreen = function() {
 		// Switches to fullscreen mode
-		if (!isFullscreenEnabled()) {
-			if (!!container.requestFullscreen)
-				container.requestFullscreen();
-
-			else if (!!container.mozRequestFullScreen)
-				container.mozRequestFullScreen();
-
-			else if (!!container.webkitRequestFullscreen)
-				container.webkitRequestFullscreen();
-
-			else if (!!container.msRequestFullscreen)
-				container.msRequestFullscreen();
-		}
+		if (!isFullscreenEnabled())
+			enableFullscreen();
 
 		// Switches to windowed mode
-		else {
-			if (!!document.exitFullscreen)
-				document.exitFullscreen();
-
-			else if (!!document.mozCancelFullScreen)
-				document.mozCancelFullScreen();
-
-			else if (!!document.webkitExitFullscreen)
-				document.webkitExitFullscreen();
-
-			else if (!!document.msExitFullscreen)
-				document.msExitFullscreen();
-		}
-	}
+		else
+			disableFullscreen();
+	};
 
 	/**
-	 * Sets the animation speed
-	 * @param speed (string) The speed, in radians/degrees/revolutions per second/minute
-	 * @return (void)
+	 * Shows the navigation bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var showNavbar = function() {
+		if (display_navbar)
+			navbar.show();
+	};
+
+	/**
+	 * Sets the animation speed.
+	 * @private
+	 * @param {string} speed - The speed, in radians/degrees/revolutions per second/minute
+	 * @return {void}
 	 **/
 
 	var setAnimSpeed = function(speed) {
@@ -853,12 +1110,35 @@ var PhotoSphereViewer = function(args) {
 
 		// Longitude offset
 		long_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
-	}
+	};
 
 	/**
-	 * Sets the viewer size
-	 * @param size (Object) An object containing the wanted width and height
-	 * @return (void)
+	 * Parses an angle given in radians or degrees.
+	 * @private
+	 * @param {number|string} angle - Angle in radians (number) or in degrees (string)
+	 * @return {number} The angle in radians
+	 **/
+
+	var parseAngle = function(angle) {
+		angle = angle.toString().trim();
+
+		// Angle extraction
+		var angle_value = parseFloat(angle.replace(/^(-?[0-9]+(?:\.[0-9]*)?).*$/, '$1'));
+		var angle_unit = angle.replace(/^-?[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
+
+		// Degrees
+		if (angle_unit == 'deg')
+			angle_value *= Math.PI / 180;
+
+		// Radians by default, we don't have anyting to do
+		return getAngleMeasure(angle_value);
+	};
+
+	/**
+	 * Sets the viewer size.
+	 * @private
+	 * @param {object} size - An object containing the wanted width and height
+	 * @return {void}
 	 **/
 
 	var setNewViewerSize = function(size) {
@@ -883,13 +1163,14 @@ var PhotoSphereViewer = function(args) {
 					};
 			}
 		}
-	}
+	};
 
 	/**
-	 * Adds an action
-	 * @param name (string) Action name
-	 * @param f (Function) The handler function
-	 * @return (void)
+	 * Adds a function to execute when a given action occurs.
+	 * @public
+	 * @param {string} name - The action name
+	 * @param {function} f - The handler function
+	 * @return {void}
 	 **/
 
 	this.addAction = function(name, f) {
@@ -898,18 +1179,19 @@ var PhotoSphereViewer = function(args) {
 			actions[name] = [];
 
 		actions[name].push(f);
-	}
+	};
 
 	/**
-	 * Triggers an action
-	 * @param name (string) Action name
-	 * @param arg (mixed) An argument to send to the handler functions
-	 * @return (void)
+	 * Triggers an action.
+	 * @private
+	 * @param {string} name - Action name
+	 * @param {*} arg - An argument to send to the handler functions
+	 * @return {void}
 	 **/
 
 	var triggerAction = function(name, arg) {
 		// Does the action have any function?
-		if ((name in actions) && actions[name].length > 0) {
+		if ((name in actions) && !!actions[name].length) {
 			for (var i = 0, l = actions[name].length; i < l; ++i) {
 				if (arg !== undefined)
 					actions[name][i](arg);
@@ -918,7 +1200,7 @@ var PhotoSphereViewer = function(args) {
 					actions[name][i]();
 			}
 		}
-	}
+	};
 
 	// Required parameters
 	if (args === undefined || args.panorama === undefined || args.container === undefined) {
@@ -935,18 +1217,18 @@ var PhotoSphereViewer = function(args) {
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
 
 	// Maximal tilt up / down angles
-	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? parseFloat(args.tilt_up_max) : Math.PI / 2.0;
-	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -parseFloat(args.tilt_down_max) : -Math.PI / 2.0;
+	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? stayBetween(parseAngle(args.tilt_up_max), 0, Math.PI / 2.0) : Math.PI / 2.0;
+	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -stayBetween(parseAngle(args.tilt_down_max), 0, Math.PI / 2.0) : -Math.PI / 2.0;
 
 	// Default position
 	var lat = 0, long = 0;
 
 	if (args.default_position !== undefined) {
 		if (args.default_position.lat !== undefined)
-			lat = getAngleMeasure(parseFloat(args.default_position.lat));
+			lat = stayBetween(parseAngle(args.default_position.lat), PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 		if (args.default_position.long !== undefined)
-			long = getAngleMeasure(parseFloat(args.default_position.long));
+			long = parseAngle(args.default_position.long);
 	}
 
 	// Default zoom level
@@ -988,6 +1270,12 @@ var PhotoSphereViewer = function(args) {
 	// Style of the navigation bar
 	var navbar_style = (args.navbar_style !== undefined) ? args.navbar_style : {};
 
+	// Are user interactions allowed?
+	var user_interactions_allowed = (args.allow_user_interactions !== undefined) ? !!args.allow_user_interactions : true;
+
+	if (!user_interactions_allowed)
+		display_navbar = false;
+
 	// Container
 	var container = args.container;
 
@@ -999,18 +1287,23 @@ var PhotoSphereViewer = function(args) {
 	// Some useful attributes
 	var panorama = args.panorama;
 	var root, canvas_container;
-	var renderer = null, scene = null, camera = null;
+	var renderer = null, scene = null, camera = null, stereo_effect = null;
 	var mousedown = false, mouse_x = 0, mouse_y = 0;
 	var touchzoom = false, touchzoom_dist = 0;
 	var autorotate_timeout = null, anim_timeout = null;
+
+	var sphoords = new Sphoords();
 
 	var actions = {};
 
 	// Must we read XMP data?
 	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
 
-	// Loading indicator
-	var loading_img = (args.loading_img !== undefined) ? args.loading_img : null;
+	// Loading message
+	var loading_msg = (args.loading_msg !== undefined) ? args.loading_msg.toString() : 'Loading…';
+
+	// Loading image
+	var loading_img = (args.loading_img !== undefined) ? args.loading_img.toString() : null;
 
 	// Function to call once panorama is ready?
 	if (args.onready !== undefined)
@@ -1021,19 +1314,21 @@ var PhotoSphereViewer = function(args) {
 
 	if (autoload)
 		this.load();
-}
+};
 
 /**
- * Navigation bar class
- * @param psv (PhotoSphereViewer) A PhotoSphereViewer object
+ * Represents the navigation bar.
+ * @class
+ * @param {PhotoSphereViewer} psv - A PhotoSphereViewer object
  **/
 
 var PSVNavBar = function(psv) {
 	/**
-	 * Checks if a value exists in an array
-	 * @param searched (mixed) The searched value
-	 * @param array (Array) The array
-	 * @return (boolean) true if the value exists in the array, false otherwise
+	 * Checks if a value exists in an array.
+	 * @private
+	 * @param {*} searched - The searched value
+	 * @param {array} array - The array
+	 * @return {boolean} `true` if the value exists in the array, `false` otherwise
 	 **/
 
 	var inArray = function(searched, array) {
@@ -1043,13 +1338,14 @@ var PSVNavBar = function(psv) {
 		}
 
 		return false;
-	}
+	};
 
 	/**
-	 * Checks if a property is valid
-	 * @param property (string) The property
-	 * @param value (mixed) The value to check
-	 * @return (boolean) true if the value is valid, false otherwise
+	 * Checks if a property is valid.
+	 * @private
+	 * @param {string} property - The property
+	 * @param {*} value - The value to check
+	 * @return {boolean} `true` if the value is valid, `false` otherwise
 	 **/
 
 	var checkValue = function(property, value) {
@@ -1068,12 +1364,27 @@ var PSVNavBar = function(psv) {
 				// Number
 				(inArray(property, numbers) && !isNaN(parseFloat(value)) && isFinite(value) && value >= 0)
 			);
-	}
+	};
 
 	/**
-	 * Sets the style
-	 * @param new_style (object) The properties to change
-	 * @return (void)
+	 * Sets the style.
+	 * @public
+	 * @param {object} new_style - The properties to change
+	 * @param {string} [new_style.backgroundColor=rgba(61, 61, 61, 0.5)] - Navigation bar background color
+	 * @param {string} [new_style.buttonsColor=rgba(255, 255, 255, 0.7)] - Buttons foreground color
+	 * @param {string} [new_style.buttonsBackgroundColor=transparent] - Buttons background color
+	 * @param {string} [new_style.activeButtonsBackgroundColor=rgba(255, 255, 255, 0.1)] - Active buttons background color
+	 * @param {number} [new_style.buttonsHeight=20] - Buttons height in pixels
+	 * @param {number} [new_style.autorotateThickness=1] - Autorotate icon thickness in pixels
+	 * @param {number} [new_style.zoomRangeWidth=50] - Zoom range width in pixels
+	 * @param {number} [new_style.zoomRangeThickness=1] - Zoom range thickness in pixels
+	 * @param {number} [new_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
+	 * @param {number} [new_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width / height)
+	 * @param {number} [new_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+	 * @param {number} [new_style.gyroscopeThickness=1] - Gyroscope icon thickness in pixels
+	 * @param {number} [new_style.virtualRealityRatio=4/3] - Virtual reality icon ratio (width / height)
+	 * @param {number} [new_style.virtualRealityBorderRadius=2] - Virtual reality icon border radius in pixels
+	 * @return {void}
 	 **/
 
 	this.setStyle = function(new_style) {
@@ -1083,11 +1394,12 @@ var PSVNavBar = function(psv) {
 			if ((property in style) && checkValue(property, new_style[property]))
 				style[property] = new_style[property];
 		}
-	}
+	};
 
 	/**
-	 * Creates the elements
-	 * @return (void)
+	 * Creates the elements.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.create = function() {
@@ -1100,6 +1412,8 @@ var PSVNavBar = function(psv) {
 		container.style.bottom = 0;
 		container.style.width = '100%';
 
+		container.style.transition = 'bottom 0.4s ease-out';
+
 		// Autorotate button
 		autorotate = new PSVNavBarButton(psv, 'autorotate', style);
 		container.appendChild(autorotate.getButton());
@@ -1111,16 +1425,112 @@ var PSVNavBar = function(psv) {
 		// Fullscreen button
 		fullscreen = new PSVNavBarButton(psv, 'fullscreen', style);
 		container.appendChild(fullscreen.getButton());
-	}
+
+		if (Sphoords.isDeviceOrientationSupported) {
+			// Device orientation button
+			orientation = new PSVNavBarButton(psv, 'orientation', style);
+			container.appendChild(orientation.getButton());
+
+			// Virtual reality button
+			vr = new PSVNavBarButton(psv, 'virtual-reality', style);
+			container.appendChild(vr.getButton());
+		}
+	};
 
 	/**
-	 * Returns the bar itself
-	 * @return (HTMLElement) The bar
+	 * Returns the bar itself.
+	 * @public
+	 * @return {HTMLElement} The bar
 	 **/
 
 	this.getBar = function() {
 		return container;
-	}
+	};
+
+	/**
+	 * Shows the bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var show = function() {
+		// Stop hiding the bar if necessary
+		if (!!must_hide_timeout) {
+			clearTimeout(must_hide_timeout);
+
+			if (!hidden && must_be_hidden)
+				must_hide_timeout = setTimeout(hide, 5000);
+		}
+
+		if (hidden) {
+			container.style.bottom = 0;
+			hidden = false;
+
+			// If bar must be hidden, we hide it again
+			if (must_be_hidden)
+				must_hide_timeout = setTimeout(hide, 5000);
+		}
+	};
+
+	/**
+	 * Shows the bar.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.show = function() {
+		show();
+	};
+
+	/**
+	 * Hides the bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var hide = function() {
+		if (!hidden) {
+			container.style.bottom = (-container.offsetHeight + 1) + 'px';
+			hidden = true;
+		}
+	};
+
+	/**
+	 * Hides the bar.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.hide = function() {
+		hide();
+	};
+
+	/**
+	 * Returns the current state.
+	 * @public
+	 * @return {boolean} `true` if navigation bar is hidden, `false` otherwise
+	 **/
+
+	this.isHidden = function() {
+		return hidden;
+	};
+
+	/**
+	 * Indicates that the bar must be hidden or not.
+	 * @public
+	 * @param {boolean} [state=true] - `true` to automatically hide the bar, `false` to show it
+	 * @return {void}
+	 **/
+
+	this.mustBeHidden = function(state) {
+		must_be_hidden = (state !== undefined) ? !!state : true;
+
+		if (must_be_hidden)
+			hide();
+
+		else
+			show();
+	};
 
 	// Default style
 	var style = {
@@ -1155,7 +1565,16 @@ var PSVNavBar = function(psv) {
 			fullscreenRatio: 4 / 3,
 
 			// Fullscreen icon thickness in pixels
-			fullscreenThickness: 2
+			fullscreenThickness: 2,
+
+			// Gyroscope icon thickness in pixels
+			gyroscopeThickness: 1,
+
+			// Virtual reality icon ratio
+			virtualRealityRatio: 4 / 3,
+
+			// Virtual reality icon border radius in pixels
+			virtualRealityBorderRadius: 2
 		};
 
 	// Properties types
@@ -1164,23 +1583,27 @@ var PSVNavBar = function(psv) {
 
 	// Some useful attributes
 	var container;
-	var arrows, autorotate, zoom, fullscreen;
-}
+	var autorotate, zoom, fullscreen, orientation, vr;
+	var must_hide_timeout = null;
+	var hidden = false, must_be_hidden = false;
+};
 
 /**
- * Navigation bar button class
- * @param psv (PhotoSphereViewer) A PhotoSphereViewer object
- * @param type (string) Type of button (arrows)
- * @param style (Object) Style of the navigation bar
+ * Represents a navigation bar button.
+ * @class
+ * @param {PhotoSphereViewer} psv - A PhotoSphereViewer object
+ * @param {string} type - Type of button
+ * @param {object} style - Style of the navigation bar
  **/
 
 var PSVNavBarButton = function(psv, type, style) {
     /**
-     * Attaches an event handler function to an elemnt
-     * @param elt (HTMLElement) The element
-     * @param evt (string) The event name
-     * @param f (Function) The handler function
-     * @return (void)
+     * Attaches an event handler function to an elemnt.
+     * @private
+     * @param {HTMLElement} elt - The element
+     * @param {string} evt - The event name
+     * @param {Function} f - The handler function
+     * @return {void}
      **/
 
     var addEvent = function(elt, evt, f) {
@@ -1188,11 +1611,12 @@ var PSVNavBarButton = function(psv, type, style) {
             elt.addEventListener(evt, f, false);
         else
             elt.attachEvent('on' + evt, f);
-    }
+    };
 
     /**
-     * Creates the right button
-     * @return (void)
+     * Creates the right button.
+     * @private
+     * @return {void}
      **/
 
     var create = function() {
@@ -1319,12 +1743,12 @@ var PSVNavBarButton = function(psv, type, style) {
         		button = document.createElement('div');
         		button.style.cssFloat = 'right';
         		button.style.padding = '10px';
-        		button.style.width = fullscreen_width;
-        		button.style.height = style.buttonsHeight;
+        		button.style.width = fullscreen_width + 'px';
+        		button.style.height = style.buttonsHeight + 'px';
         		button.style.backgroundColor = style.buttonsBackgroundColor;
         		button.style.cursor = 'pointer';
 
-        		addEvent(button, 'click', function(){psv.toggleFullscreen();})
+        		addEvent(button, 'click', function(){psv.toggleFullscreen();});
 
         		// Fullscreen icon left side
         		var fullscreen_left = document.createElement('div');
@@ -1375,22 +1799,142 @@ var PSVNavBarButton = function(psv, type, style) {
                 psv.addAction('fullscreen-mode', toggleActive);
 
                 break;
+
+            case 'orientation':
+                // Gyroscope icon sizes
+                var gyroscope_sphere_width = style.buttonsHeight - style.gyroscopeThickness * 2;
+                var gyroscope_ellipses_big_axis = gyroscope_sphere_width - style.gyroscopeThickness * 4;
+                var gyroscope_ellipses_little_axis = gyroscope_sphere_width / 10;
+
+                // Gyroscope button
+        		button = document.createElement('div');
+        		button.style.cssFloat = 'right';
+        		button.style.padding = '10px';
+                button.style.width = style.buttonsHeight + 'px';
+                button.style.height = style.buttonsHeight + 'px';
+                button.style.backgroundColor = style.buttonsBackgroundColor;
+                button.style.position = 'relative';
+                button.style.cursor = 'pointer';
+
+                addEvent(button, 'click', function(){psv.toggleDeviceOrientation();});
+
+                var gyroscope_sphere = document.createElement('div');
+                gyroscope_sphere.style.width = gyroscope_sphere_width + 'px';
+                gyroscope_sphere.style.height = gyroscope_sphere_width + 'px';
+                gyroscope_sphere.style.borderRadius = '50%';
+                gyroscope_sphere.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                button.appendChild(gyroscope_sphere);
+
+                var gyroscope_hor_ellipsis = document.createElement('div');
+                gyroscope_hor_ellipsis.style.width = gyroscope_ellipses_big_axis + 'px';
+                gyroscope_hor_ellipsis.style.height = gyroscope_ellipses_little_axis + 'px';
+                gyroscope_hor_ellipsis.style.borderRadius = '50%';
+                gyroscope_hor_ellipsis.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                gyroscope_hor_ellipsis.style.position = 'absolute';
+                gyroscope_hor_ellipsis.style.top = '50%';
+                gyroscope_hor_ellipsis.style.left = '50%';
+                gyroscope_hor_ellipsis.style.marginTop = -(gyroscope_ellipses_little_axis / 2 + style.gyroscopeThickness) + 'px';
+                gyroscope_hor_ellipsis.style.marginLeft = -(gyroscope_ellipses_big_axis / 2 + style.gyroscopeThickness) + 'px';
+                button.appendChild(gyroscope_hor_ellipsis);
+
+                var gyroscope_ver_ellipsis = document.createElement('div');
+                gyroscope_ver_ellipsis.style.width = gyroscope_ellipses_little_axis + 'px';
+                gyroscope_ver_ellipsis.style.height = gyroscope_ellipses_big_axis + 'px';
+                gyroscope_ver_ellipsis.style.borderRadius = '50%';
+                gyroscope_ver_ellipsis.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                gyroscope_ver_ellipsis.style.position = 'absolute';
+                gyroscope_ver_ellipsis.style.top = '50%';
+                gyroscope_ver_ellipsis.style.left = '50%';
+                gyroscope_ver_ellipsis.style.marginTop = -(gyroscope_ellipses_big_axis / 2 + style.gyroscopeThickness) + 'px';
+                gyroscope_ver_ellipsis.style.marginLeft = -(gyroscope_ellipses_little_axis / 2 + style.gyroscopeThickness) + 'px';
+                button.appendChild(gyroscope_ver_ellipsis);
+
+                // (In)active
+                psv.addAction('device-orientation', toggleActive);
+
+                break;
+
+            case 'virtual-reality':
+                // Sizes
+                var vr_width = style.buttonsHeight * style.virtualRealityRatio;
+
+                var vr_eye_diameter = vr_width / 4;
+                var vr_eye_offset = vr_eye_diameter / 2;
+
+                // Button
+                button = document.createElement('div');
+                button.style.cssFloat = 'right';
+                button.style.position = 'relative';
+                button.style.padding = '10px';
+                button.style.width = vr_width + 'px';
+                button.style.height = style.buttonsHeight + 'px';
+                button.style.backgroundColor = style.buttonsBackgroundColor;
+                button.style.cursor = 'pointer';
+
+                addEvent(button, 'click', function(){psv.toggleStereo();});
+
+                // Icon
+                var vr_rect = document.createElement('div');
+                vr_rect.style.width = vr_width + 'px';
+                vr_rect.style.height = style.buttonsHeight + 'px';
+                vr_rect.style.borderRadius = style.virtualRealityBorderRadius + 'px';
+                vr_rect.style.backgroundColor = style.buttonsColor;
+                button.appendChild(vr_rect);
+
+                var left_eye = document.createElement('div');
+                left_eye.style.width = vr_eye_diameter + 'px';
+                left_eye.style.height = vr_eye_diameter + 'px';
+                left_eye.style.position = 'absolute';
+                left_eye.style.top = (vr_eye_offset + 10) + 'px';
+                left_eye.style.left = (vr_eye_offset + 10) + 'px';
+                left_eye.style.borderRadius = '50%';
+                left_eye.style.backgroundColor = style.backgroundColor;
+                button.appendChild(left_eye);
+
+                var right_eye = document.createElement('div');
+                right_eye.style.width = vr_eye_diameter + 'px';
+                right_eye.style.height = vr_eye_diameter + 'px';
+                right_eye.style.position = 'absolute';
+                right_eye.style.top = (vr_eye_offset + 10) + 'px';
+                right_eye.style.right = (vr_eye_offset + 10) + 'px';
+                right_eye.style.borderRadius = '50%';
+                right_eye.style.backgroundColor = style.backgroundColor;
+                button.appendChild(right_eye);
+
+                var nose = document.createElement('div');
+                nose.style.width = vr_eye_diameter + 'px';
+                nose.style.height = (style.buttonsHeight / 2) + 'px';
+                nose.style.position = 'absolute';
+                nose.style.left = '50%';
+                nose.style.bottom = '10px';
+                nose.style.marginLeft = -(vr_eye_diameter / 2) + 'px';
+                nose.style.borderTopLeftRadius = '50% 60%';
+                nose.style.borderTopRightRadius = '50% 60%';
+                nose.style.backgroundColor = style.backgroundColor;
+                button.appendChild(nose);
+
+                //(In)active
+                psv.addAction('stereo-effect', toggleActive);
+
+                break;
         }
-    }
+    };
 
     /**
-     * Returns the button element
-     * @return (HTMLElement) The button
+     * Returns the button element.
+     * @public
+     * @return {HTMLElement} The button
      **/
 
     this.getButton = function() {
         return button;
-    }
+    };
 
     /**
-     * Changes the active state of the button
-     * @param active (boolean) true if the button should be active, false otherwise
-     * @return (void)
+     * Changes the active state of the button.
+     * @private
+     * @param {boolean} active - `true` if the button should be active, `false` otherwise
+     * @return {void}
      **/
 
     var toggleActive = function(active) {
@@ -1399,76 +1943,83 @@ var PSVNavBarButton = function(psv, type, style) {
 
         else
             button.style.backgroundColor = style.buttonsBackgroundColor;
-    }
+    };
 
     /**
-     * Moves the zoom cursor
-     * @param level (integer) Zoom level (between 0 and 100)
-     * @return (void)
+     * Moves the zoom cursor.
+     * @private
+     * @param {integer} level - Zoom level (between 0 and 100)
+     * @return {void}
      **/
 
     var moveZoomValue = function(level) {
         zoom_value.style.left = (level / 100 * style.zoomRangeWidth - style.zoomRangeDisk / 2) + 'px';
-    }
+    };
 
     /**
-     * The user wants to zoom
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to zoom.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var initZoomChangeWithMouse = function(evt) {
         initZoomChange(parseInt(evt.clientX));
-    }
+    };
 
     /**
-     * The user wants to zoom (mobile version)
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to zoom (mobile version).
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var initZoomChangeByTouch = function(evt) {
         var touch = evt.touches[0];
         if (touch.target == zoom_range_bg || touch.target == zoom_range || touch.target == zoom_value)
             initZoomChange(parseInt(touch.clientX));
-    }
+    };
 
     /**
-     * Initializes a zoom change
-     * @param x (integer) Horizontal coordinate
-     * @return (void)
+     * Initializes a zoom change.
+     * @private
+     * @param {integer} x - Horizontal coordinate
+     * @return {void}
      **/
 
     var initZoomChange = function(x) {
         mousedown = true;
         changeZoom(x);
-    }
+    };
 
     /**
-     * The user wants to stop zooming
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to stop zooming.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var stopZoomChange = function(evt) {
         mousedown = false;
-    }
+    };
 
     /**
-     * The user moves the zoom cursor
-     * @param evt (Event) The event
-     * @return (void)
+     * The user moves the zoom cursor.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var changeZoomWithMouse = function(evt) {
         evt.preventDefault();
         changeZoom(parseInt(evt.clientX));
-    }
+    };
 
     /**
-     * The user moves the zoom cursor (mobile version)
-     * @param evt (Event) The event
-     * @return (void)
+     * The user moves the zoom cursor (mobile version).
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var changeZoomByTouch = function(evt) {
@@ -1477,12 +2028,13 @@ var PSVNavBarButton = function(psv, type, style) {
             evt.preventDefault();
             changeZoom(parseInt(touch.clientX));
         }
-    }
+    };
 
     /**
-     * Zoom change
-     * @param x (integer) Horizontal coordinate
-     * @return (void)
+     * Zoom change.
+     * @private
+     * @param {integer} x - Horizontal coordinate
+     * @return {void}
      **/
 
     var changeZoom = function(x) {
@@ -1491,7 +2043,7 @@ var PSVNavBarButton = function(psv, type, style) {
             var zoom_level = user_input / style.zoomRangeWidth * 100;
             psv.zoom(zoom_level);
         }
-    }
+    };
 
     // Some useful attributes
     var zoom_range_bg, zoom_range, zoom_value;
@@ -1500,4 +2052,341 @@ var PSVNavBarButton = function(psv, type, style) {
     // Create the button
     var button;
     create();
-}
+};
+
+/**
+ * Sphoords class allowing to retrieve the current orientation of a device supporting the Orientation API.
+ * @class
+ **/
+
+var Sphoords = function() {
+	/**
+	 * Detects the used browser engine.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var detectBrowserEngine = function() {
+		// User-Agent
+		var ua = navigator.userAgent;
+
+		// Gecko
+		if (/Gecko\/[0-9.]+/.test(ua))
+			return 'Gecko';
+
+		// Blink
+		if (/Chrome\/[0-9.]+/.test(ua))
+			return 'Blink';
+
+		// WebKit
+		if (/AppleWebKit\/[0-9.]+/.test(ua))
+			return 'WebKit';
+
+		// Trident
+		if (/Trident\/[0-9.]+/.test(ua))
+			return 'Trident';
+
+		// Presto
+		if (/Opera\/[0-9.]+/.test(ua))
+			return 'Presto';
+
+		// No engine detected, Gecko by default
+		return 'Gecko';
+	};
+
+	/**
+	 * Returns the principal angle in degrees.
+	 * @private
+	 * @param {number} angle - The initial angle
+	 * @return {number} The principal angle
+	 **/
+
+	var getPrincipalAngle = function(angle) {
+		return angle - Math.floor(angle / 360.0) * 360.0;
+	};
+
+	/**
+	 * Attaches the DeviceOrientation event to the window and starts the record, only if Device Orientation is supported.
+	 * @public
+	 * @return {boolean} `true` if event is attached, `false` otherwise
+	 **/
+
+	this.start = function() {
+		if (Sphoords.isDeviceOrientationSupported) {
+			window.addEventListener('deviceorientation', onDeviceOrientation, false);
+
+			recording = true;
+			return true;
+		}
+
+		else {
+			console.log('Device Orientation API not supported');
+			return false;
+		}
+	};
+
+	/**
+	 * Stops the record by removing the event handler.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.stop = function() {
+		// Is there something to remove?
+		if (recording) {
+			window.removeEventListener('deviceorientation', onDeviceOrientation, false);
+
+			recording = false;
+		}
+	};
+
+	/**
+	 * Toggles the recording state.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.toggle = function() {
+		if (recording)
+			this.stop();
+
+		else
+			this.start();
+	};
+
+	/**
+	 * Determines whether Device Orientation Event is attached.
+	 * @public
+	 * @return {boolean} `true` if event is attached, `false` otherwise
+	 **/
+
+	this.isEventAttached = function() {
+		return recording;
+	};
+
+	/**
+	 * Records the current orientation
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
+	 **/
+
+	var onDeviceOrientation = function(evt) {
+		// Current screen orientation
+		orientation = Sphoords.getScreenOrientation();
+
+		// Coordinates depend on the orientation
+		var theta = 0, phi = 0;
+
+		switch (orientation) {
+			// Portrait mode
+			case 'portrait-primary':
+				theta = evt.alpha + evt.gamma;
+				phi = evt.beta - 90;
+
+				break;
+
+			// Landscape mode
+			case 'landscape-primary':
+				// If "-90" is not present for theta, origin won't be the same than for portrait mode
+				theta = evt.alpha + evt.beta - 90;
+				phi = -evt.gamma - 90;
+
+				// The user looks to the top while phi "looks" to the bottom
+				if (Math.abs(evt.beta) > 90) {
+					// Here browser engines have different behaviors
+					// Hope we have a really respected standard soon
+
+					switch (engine) {
+						case 'Blink':
+							phi += 180;
+							break;
+
+						case 'Gecko':
+						default:
+							phi = -phi;
+							break;
+					}
+				}
+
+				break;
+
+			// Landscape mode (inversed)
+			case 'landscape-secondary':
+				// Still the same reason for "+90"
+				theta = evt.alpha - evt.beta + 90;
+				phi = evt.gamma - 90;
+
+				// The user looks to the top while phi "looks" to the bottom
+				if (Math.abs(evt.beta) > 90) {
+					// Here again, some different behaviors…
+
+					switch (engine) {
+						case 'Blink':
+							phi += 180;
+							break;
+
+						case 'Gecko':
+						default:
+							phi = -phi;
+							break;
+					}
+				}
+
+				break;
+
+			// Portrait mode (inversed)
+			case 'portrait-secondary':
+				theta = evt.alpha - evt.gamma;
+				phi = 180 - (evt.beta - 90);
+				phi = 270 - evt.beta;
+
+				break;
+		}
+
+		// First, we want phi to be between -π and π
+		phi = getPrincipalAngle(phi);
+
+		if (phi >= 180)
+			phi -= 360;
+
+		// We store the right values
+		long_deg = getPrincipalAngle(theta);
+		lat_deg = Math.max(-90, Math.min(90, phi));
+
+		long = long_deg * DEG_TO_RAD;
+		lat = lat_deg * DEG_TO_RAD;
+
+		// We execute the wanted functions
+		executeListeners();
+	};
+
+	/**
+	 * Returns the current coordinates.
+	 * @public
+	 * @return {object} Longitude/latitude couple
+	 **/
+
+	this.getCoordinates = function() {
+		return {
+				longitude: long,
+				latitude: lat
+			};
+	};
+
+	/**
+	 * Returns the current coordinates in degrees.
+	 * @return {object} Longitude/latitude couple
+	 **/
+
+	this.getCoordinatesInDegrees = function() {
+		return {
+				longitude: long_deg,
+				latitude: lat_deg
+			};
+	};
+
+	/**
+	 * Returns the current screen orientation.
+	 * @return {string|null} The screen orientation (portrait-primary, portrait-secondary, landscape-primary, landscape-secondary) or `null` if not supported
+	 **/
+
+	this.getScreenOrientation = function() {
+		return orientation;
+	};
+
+	/**
+	 * Adds a function to execute when device orientation changes.
+	 * @public
+	 * @param {function} f - The handler function
+	 * @return {void}
+	 **/
+
+	this.addListener = function(f) {
+		listeners.push(f);
+	};
+
+	/**
+	 * Executes all the wanted functions for the main event.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var executeListeners = function() {
+		if (!!listeners.length) {
+			for (var i = 0, l = listeners.length; i < l; ++i) {
+				listeners[i]({
+					longitude: long,
+					latitude: lat
+				});
+			}
+		}
+	};
+
+	// Current state
+	var recording = false;
+
+	// Coordinates in degrees
+	var long_deg = 0, lat_deg = 0;
+
+	// Coordinates in radians
+	var long = 0, lat = 0;
+
+	// What a useful constant!
+	var DEG_TO_RAD = Math.PI / 180;
+
+	// Screen orientation
+	var orientation = Sphoords.getScreenOrientation();
+
+	// Browser engine
+	var engine = detectBrowserEngine();
+
+	// Listeners
+	var listeners = [];
+};
+
+/**
+ * Retrieves the current screen orientation.
+ * @static
+ * @return {string|null} Current screen orientation, `null` if not supported
+ **/
+
+Sphoords.getScreenOrientation = function() {
+	var screen_orientation = null;
+
+	if (!!screen.orientation)
+		screen_orientation = screen.orientation;
+
+	else if (!!screen.mozOrientation)
+		screen_orientation = screen.mozOrientation;
+
+	else if (!!screen.msOrientation)
+		screen_orientation = screen.msOrientation;
+
+	// Are the specs respected?
+	return (screen_orientation !== null && (typeof screen_orientation == 'object')) ? screen_orientation.type : screen_orientation;
+};
+
+/**
+ * A boolean to know if device orientation is supported (`true` if it is, `false` otherwise).
+ * @static
+ **/
+
+Sphoords.isDeviceOrientationSupported = false;
+
+// Just testing if window.DeviceOrientationEvent is defined is not enough
+// In fact, it can return false positives with some desktop browsers which run in computers that don't have the dedicated hardware
+(function() {
+	// We attach the right event
+	// If it is fired, the API is really supported so we can indicate true :)
+	if (!!window.DeviceOrientationEvent && Sphoords.getScreenOrientation() !== null) {
+		function testDeviceOrientation(evt) {
+			if (evt !== null && evt.alpha !== null) {
+				Sphoords.isDeviceOrientationSupported = true;
+				window.removeEventListener('deviceorientation', testDeviceOrientation);
+			}
+		}
+
+		window.addEventListener('deviceorientation', testDeviceOrientation);
+	}
+})();

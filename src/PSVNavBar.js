@@ -1,39 +1,41 @@
 /*
-* Photo Sphere Viewer v2.2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * Photo Sphere Viewer v2.3
+ * http://jeremyheleine.me/photo-sphere-viewer
+ *
+ * Copyright (c) 2014,2015 Jérémy Heleine
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 /**
- * Navigation bar class
- * @param psv (PhotoSphereViewer) A PhotoSphereViewer object
+ * Represents the navigation bar.
+ * @class
+ * @param {PhotoSphereViewer} psv - A PhotoSphereViewer object
  **/
 
 var PSVNavBar = function(psv) {
 	/**
-	 * Checks if a value exists in an array
-	 * @param searched (mixed) The searched value
-	 * @param array (Array) The array
-	 * @return (boolean) true if the value exists in the array, false otherwise
+	 * Checks if a value exists in an array.
+	 * @private
+	 * @param {*} searched - The searched value
+	 * @param {array} array - The array
+	 * @return {boolean} `true` if the value exists in the array, `false` otherwise
 	 **/
 
 	var inArray = function(searched, array) {
@@ -43,13 +45,14 @@ var PSVNavBar = function(psv) {
 		}
 
 		return false;
-	}
+	};
 
 	/**
-	 * Checks if a property is valid
-	 * @param property (string) The property
-	 * @param value (mixed) The value to check
-	 * @return (boolean) true if the value is valid, false otherwise
+	 * Checks if a property is valid.
+	 * @private
+	 * @param {string} property - The property
+	 * @param {*} value - The value to check
+	 * @return {boolean} `true` if the value is valid, `false` otherwise
 	 **/
 
 	var checkValue = function(property, value) {
@@ -68,12 +71,27 @@ var PSVNavBar = function(psv) {
 				// Number
 				(inArray(property, numbers) && !isNaN(parseFloat(value)) && isFinite(value) && value >= 0)
 			);
-	}
+	};
 
 	/**
-	 * Sets the style
-	 * @param new_style (object) The properties to change
-	 * @return (void)
+	 * Sets the style.
+	 * @public
+	 * @param {object} new_style - The properties to change
+	 * @param {string} [new_style.backgroundColor=rgba(61, 61, 61, 0.5)] - Navigation bar background color
+	 * @param {string} [new_style.buttonsColor=rgba(255, 255, 255, 0.7)] - Buttons foreground color
+	 * @param {string} [new_style.buttonsBackgroundColor=transparent] - Buttons background color
+	 * @param {string} [new_style.activeButtonsBackgroundColor=rgba(255, 255, 255, 0.1)] - Active buttons background color
+	 * @param {number} [new_style.buttonsHeight=20] - Buttons height in pixels
+	 * @param {number} [new_style.autorotateThickness=1] - Autorotate icon thickness in pixels
+	 * @param {number} [new_style.zoomRangeWidth=50] - Zoom range width in pixels
+	 * @param {number} [new_style.zoomRangeThickness=1] - Zoom range thickness in pixels
+	 * @param {number} [new_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
+	 * @param {number} [new_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width / height)
+	 * @param {number} [new_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+	 * @param {number} [new_style.gyroscopeThickness=1] - Gyroscope icon thickness in pixels
+	 * @param {number} [new_style.virtualRealityRatio=4/3] - Virtual reality icon ratio (width / height)
+	 * @param {number} [new_style.virtualRealityBorderRadius=2] - Virtual reality icon border radius in pixels
+	 * @return {void}
 	 **/
 
 	this.setStyle = function(new_style) {
@@ -83,11 +101,12 @@ var PSVNavBar = function(psv) {
 			if ((property in style) && checkValue(property, new_style[property]))
 				style[property] = new_style[property];
 		}
-	}
+	};
 
 	/**
-	 * Creates the elements
-	 * @return (void)
+	 * Creates the elements.
+	 * @public
+	 * @return {void}
 	 **/
 
 	this.create = function() {
@@ -100,6 +119,8 @@ var PSVNavBar = function(psv) {
 		container.style.bottom = 0;
 		container.style.width = '100%';
 
+		container.style.transition = 'bottom 0.4s ease-out';
+
 		// Autorotate button
 		autorotate = new PSVNavBarButton(psv, 'autorotate', style);
 		container.appendChild(autorotate.getButton());
@@ -111,16 +132,112 @@ var PSVNavBar = function(psv) {
 		// Fullscreen button
 		fullscreen = new PSVNavBarButton(psv, 'fullscreen', style);
 		container.appendChild(fullscreen.getButton());
-	}
+
+		if (Sphoords.isDeviceOrientationSupported) {
+			// Device orientation button
+			orientation = new PSVNavBarButton(psv, 'orientation', style);
+			container.appendChild(orientation.getButton());
+
+			// Virtual reality button
+			vr = new PSVNavBarButton(psv, 'virtual-reality', style);
+			container.appendChild(vr.getButton());
+		}
+	};
 
 	/**
-	 * Returns the bar itself
-	 * @return (HTMLElement) The bar
+	 * Returns the bar itself.
+	 * @public
+	 * @return {HTMLElement} The bar
 	 **/
 
 	this.getBar = function() {
 		return container;
-	}
+	};
+
+	/**
+	 * Shows the bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var show = function() {
+		// Stop hiding the bar if necessary
+		if (!!must_hide_timeout) {
+			clearTimeout(must_hide_timeout);
+
+			if (!hidden && must_be_hidden)
+				must_hide_timeout = setTimeout(hide, 5000);
+		}
+
+		if (hidden) {
+			container.style.bottom = 0;
+			hidden = false;
+
+			// If bar must be hidden, we hide it again
+			if (must_be_hidden)
+				must_hide_timeout = setTimeout(hide, 5000);
+		}
+	};
+
+	/**
+	 * Shows the bar.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.show = function() {
+		show();
+	};
+
+	/**
+	 * Hides the bar.
+	 * @private
+	 * @return {void}
+	 **/
+
+	var hide = function() {
+		if (!hidden) {
+			container.style.bottom = (-container.offsetHeight + 1) + 'px';
+			hidden = true;
+		}
+	};
+
+	/**
+	 * Hides the bar.
+	 * @public
+	 * @return {void}
+	 **/
+
+	this.hide = function() {
+		hide();
+	};
+
+	/**
+	 * Returns the current state.
+	 * @public
+	 * @return {boolean} `true` if navigation bar is hidden, `false` otherwise
+	 **/
+
+	this.isHidden = function() {
+		return hidden;
+	};
+
+	/**
+	 * Indicates that the bar must be hidden or not.
+	 * @public
+	 * @param {boolean} [state=true] - `true` to automatically hide the bar, `false` to show it
+	 * @return {void}
+	 **/
+
+	this.mustBeHidden = function(state) {
+		must_be_hidden = (state !== undefined) ? !!state : true;
+
+		if (must_be_hidden)
+			hide();
+
+		else
+			show();
+	};
 
 	// Default style
 	var style = {
@@ -155,7 +272,16 @@ var PSVNavBar = function(psv) {
 			fullscreenRatio: 4 / 3,
 
 			// Fullscreen icon thickness in pixels
-			fullscreenThickness: 2
+			fullscreenThickness: 2,
+
+			// Gyroscope icon thickness in pixels
+			gyroscopeThickness: 1,
+
+			// Virtual reality icon ratio
+			virtualRealityRatio: 4 / 3,
+
+			// Virtual reality icon border radius in pixels
+			virtualRealityBorderRadius: 2
 		};
 
 	// Properties types
@@ -164,5 +290,7 @@ var PSVNavBar = function(psv) {
 
 	// Some useful attributes
 	var container;
-	var arrows, autorotate, zoom, fullscreen;
-}
+	var autorotate, zoom, fullscreen, orientation, vr;
+	var must_hide_timeout = null;
+	var hidden = false, must_be_hidden = false;
+};

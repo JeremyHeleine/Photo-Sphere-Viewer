@@ -1,42 +1,44 @@
 /*
-* Photo Sphere Viewer v2.2.1
-* http://jeremyheleine.com/#photo-sphere-viewer
-*
-* Copyright (c) 2014,2015 Jérémy Heleine
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
+ * Photo Sphere Viewer v2.3
+ * http://jeremyheleine.me/photo-sphere-viewer
+ *
+ * Copyright (c) 2014,2015 Jérémy Heleine
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 /**
- * Navigation bar button class
- * @param psv (PhotoSphereViewer) A PhotoSphereViewer object
- * @param type (string) Type of button (arrows)
- * @param style (Object) Style of the navigation bar
+ * Represents a navigation bar button.
+ * @class
+ * @param {PhotoSphereViewer} psv - A PhotoSphereViewer object
+ * @param {string} type - Type of button
+ * @param {object} style - Style of the navigation bar
  **/
 
 var PSVNavBarButton = function(psv, type, style) {
     /**
-     * Attaches an event handler function to an elemnt
-     * @param elt (HTMLElement) The element
-     * @param evt (string) The event name
-     * @param f (Function) The handler function
-     * @return (void)
+     * Attaches an event handler function to an elemnt.
+     * @private
+     * @param {HTMLElement} elt - The element
+     * @param {string} evt - The event name
+     * @param {Function} f - The handler function
+     * @return {void}
      **/
 
     var addEvent = function(elt, evt, f) {
@@ -44,11 +46,12 @@ var PSVNavBarButton = function(psv, type, style) {
             elt.addEventListener(evt, f, false);
         else
             elt.attachEvent('on' + evt, f);
-    }
+    };
 
     /**
-     * Creates the right button
-     * @return (void)
+     * Creates the right button.
+     * @private
+     * @return {void}
      **/
 
     var create = function() {
@@ -175,12 +178,12 @@ var PSVNavBarButton = function(psv, type, style) {
         		button = document.createElement('div');
         		button.style.cssFloat = 'right';
         		button.style.padding = '10px';
-        		button.style.width = fullscreen_width;
-        		button.style.height = style.buttonsHeight;
+        		button.style.width = fullscreen_width + 'px';
+        		button.style.height = style.buttonsHeight + 'px';
         		button.style.backgroundColor = style.buttonsBackgroundColor;
         		button.style.cursor = 'pointer';
 
-        		addEvent(button, 'click', function(){psv.toggleFullscreen();})
+        		addEvent(button, 'click', function(){psv.toggleFullscreen();});
 
         		// Fullscreen icon left side
         		var fullscreen_left = document.createElement('div');
@@ -231,22 +234,142 @@ var PSVNavBarButton = function(psv, type, style) {
                 psv.addAction('fullscreen-mode', toggleActive);
 
                 break;
+
+            case 'orientation':
+                // Gyroscope icon sizes
+                var gyroscope_sphere_width = style.buttonsHeight - style.gyroscopeThickness * 2;
+                var gyroscope_ellipses_big_axis = gyroscope_sphere_width - style.gyroscopeThickness * 4;
+                var gyroscope_ellipses_little_axis = gyroscope_sphere_width / 10;
+
+                // Gyroscope button
+        		button = document.createElement('div');
+        		button.style.cssFloat = 'right';
+        		button.style.padding = '10px';
+                button.style.width = style.buttonsHeight + 'px';
+                button.style.height = style.buttonsHeight + 'px';
+                button.style.backgroundColor = style.buttonsBackgroundColor;
+                button.style.position = 'relative';
+                button.style.cursor = 'pointer';
+
+                addEvent(button, 'click', function(){psv.toggleDeviceOrientation();});
+
+                var gyroscope_sphere = document.createElement('div');
+                gyroscope_sphere.style.width = gyroscope_sphere_width + 'px';
+                gyroscope_sphere.style.height = gyroscope_sphere_width + 'px';
+                gyroscope_sphere.style.borderRadius = '50%';
+                gyroscope_sphere.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                button.appendChild(gyroscope_sphere);
+
+                var gyroscope_hor_ellipsis = document.createElement('div');
+                gyroscope_hor_ellipsis.style.width = gyroscope_ellipses_big_axis + 'px';
+                gyroscope_hor_ellipsis.style.height = gyroscope_ellipses_little_axis + 'px';
+                gyroscope_hor_ellipsis.style.borderRadius = '50%';
+                gyroscope_hor_ellipsis.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                gyroscope_hor_ellipsis.style.position = 'absolute';
+                gyroscope_hor_ellipsis.style.top = '50%';
+                gyroscope_hor_ellipsis.style.left = '50%';
+                gyroscope_hor_ellipsis.style.marginTop = -(gyroscope_ellipses_little_axis / 2 + style.gyroscopeThickness) + 'px';
+                gyroscope_hor_ellipsis.style.marginLeft = -(gyroscope_ellipses_big_axis / 2 + style.gyroscopeThickness) + 'px';
+                button.appendChild(gyroscope_hor_ellipsis);
+
+                var gyroscope_ver_ellipsis = document.createElement('div');
+                gyroscope_ver_ellipsis.style.width = gyroscope_ellipses_little_axis + 'px';
+                gyroscope_ver_ellipsis.style.height = gyroscope_ellipses_big_axis + 'px';
+                gyroscope_ver_ellipsis.style.borderRadius = '50%';
+                gyroscope_ver_ellipsis.style.border = style.gyroscopeThickness + 'px solid ' + style.buttonsColor;
+                gyroscope_ver_ellipsis.style.position = 'absolute';
+                gyroscope_ver_ellipsis.style.top = '50%';
+                gyroscope_ver_ellipsis.style.left = '50%';
+                gyroscope_ver_ellipsis.style.marginTop = -(gyroscope_ellipses_big_axis / 2 + style.gyroscopeThickness) + 'px';
+                gyroscope_ver_ellipsis.style.marginLeft = -(gyroscope_ellipses_little_axis / 2 + style.gyroscopeThickness) + 'px';
+                button.appendChild(gyroscope_ver_ellipsis);
+
+                // (In)active
+                psv.addAction('device-orientation', toggleActive);
+
+                break;
+
+            case 'virtual-reality':
+                // Sizes
+                var vr_width = style.buttonsHeight * style.virtualRealityRatio;
+
+                var vr_eye_diameter = vr_width / 4;
+                var vr_eye_offset = vr_eye_diameter / 2;
+
+                // Button
+                button = document.createElement('div');
+                button.style.cssFloat = 'right';
+                button.style.position = 'relative';
+                button.style.padding = '10px';
+                button.style.width = vr_width + 'px';
+                button.style.height = style.buttonsHeight + 'px';
+                button.style.backgroundColor = style.buttonsBackgroundColor;
+                button.style.cursor = 'pointer';
+
+                addEvent(button, 'click', function(){psv.toggleStereo();});
+
+                // Icon
+                var vr_rect = document.createElement('div');
+                vr_rect.style.width = vr_width + 'px';
+                vr_rect.style.height = style.buttonsHeight + 'px';
+                vr_rect.style.borderRadius = style.virtualRealityBorderRadius + 'px';
+                vr_rect.style.backgroundColor = style.buttonsColor;
+                button.appendChild(vr_rect);
+
+                var left_eye = document.createElement('div');
+                left_eye.style.width = vr_eye_diameter + 'px';
+                left_eye.style.height = vr_eye_diameter + 'px';
+                left_eye.style.position = 'absolute';
+                left_eye.style.top = (vr_eye_offset + 10) + 'px';
+                left_eye.style.left = (vr_eye_offset + 10) + 'px';
+                left_eye.style.borderRadius = '50%';
+                left_eye.style.backgroundColor = style.backgroundColor;
+                button.appendChild(left_eye);
+
+                var right_eye = document.createElement('div');
+                right_eye.style.width = vr_eye_diameter + 'px';
+                right_eye.style.height = vr_eye_diameter + 'px';
+                right_eye.style.position = 'absolute';
+                right_eye.style.top = (vr_eye_offset + 10) + 'px';
+                right_eye.style.right = (vr_eye_offset + 10) + 'px';
+                right_eye.style.borderRadius = '50%';
+                right_eye.style.backgroundColor = style.backgroundColor;
+                button.appendChild(right_eye);
+
+                var nose = document.createElement('div');
+                nose.style.width = vr_eye_diameter + 'px';
+                nose.style.height = (style.buttonsHeight / 2) + 'px';
+                nose.style.position = 'absolute';
+                nose.style.left = '50%';
+                nose.style.bottom = '10px';
+                nose.style.marginLeft = -(vr_eye_diameter / 2) + 'px';
+                nose.style.borderTopLeftRadius = '50% 60%';
+                nose.style.borderTopRightRadius = '50% 60%';
+                nose.style.backgroundColor = style.backgroundColor;
+                button.appendChild(nose);
+
+                //(In)active
+                psv.addAction('stereo-effect', toggleActive);
+
+                break;
         }
-    }
+    };
 
     /**
-     * Returns the button element
-     * @return (HTMLElement) The button
+     * Returns the button element.
+     * @public
+     * @return {HTMLElement} The button
      **/
 
     this.getButton = function() {
         return button;
-    }
+    };
 
     /**
-     * Changes the active state of the button
-     * @param active (boolean) true if the button should be active, false otherwise
-     * @return (void)
+     * Changes the active state of the button.
+     * @private
+     * @param {boolean} active - `true` if the button should be active, `false` otherwise
+     * @return {void}
      **/
 
     var toggleActive = function(active) {
@@ -255,76 +378,83 @@ var PSVNavBarButton = function(psv, type, style) {
 
         else
             button.style.backgroundColor = style.buttonsBackgroundColor;
-    }
+    };
 
     /**
-     * Moves the zoom cursor
-     * @param level (integer) Zoom level (between 0 and 100)
-     * @return (void)
+     * Moves the zoom cursor.
+     * @private
+     * @param {integer} level - Zoom level (between 0 and 100)
+     * @return {void}
      **/
 
     var moveZoomValue = function(level) {
         zoom_value.style.left = (level / 100 * style.zoomRangeWidth - style.zoomRangeDisk / 2) + 'px';
-    }
+    };
 
     /**
-     * The user wants to zoom
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to zoom.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var initZoomChangeWithMouse = function(evt) {
         initZoomChange(parseInt(evt.clientX));
-    }
+    };
 
     /**
-     * The user wants to zoom (mobile version)
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to zoom (mobile version).
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var initZoomChangeByTouch = function(evt) {
         var touch = evt.touches[0];
         if (touch.target == zoom_range_bg || touch.target == zoom_range || touch.target == zoom_value)
             initZoomChange(parseInt(touch.clientX));
-    }
+    };
 
     /**
-     * Initializes a zoom change
-     * @param x (integer) Horizontal coordinate
-     * @return (void)
+     * Initializes a zoom change.
+     * @private
+     * @param {integer} x - Horizontal coordinate
+     * @return {void}
      **/
 
     var initZoomChange = function(x) {
         mousedown = true;
         changeZoom(x);
-    }
+    };
 
     /**
-     * The user wants to stop zooming
-     * @param evt (Event) The event
-     * @return (void)
+     * The user wants to stop zooming.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var stopZoomChange = function(evt) {
         mousedown = false;
-    }
+    };
 
     /**
-     * The user moves the zoom cursor
-     * @param evt (Event) The event
-     * @return (void)
+     * The user moves the zoom cursor.
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var changeZoomWithMouse = function(evt) {
         evt.preventDefault();
         changeZoom(parseInt(evt.clientX));
-    }
+    };
 
     /**
-     * The user moves the zoom cursor (mobile version)
-     * @param evt (Event) The event
-     * @return (void)
+     * The user moves the zoom cursor (mobile version).
+     * @private
+     * @param {Event} evt - The event
+     * @return {void}
      **/
 
     var changeZoomByTouch = function(evt) {
@@ -333,12 +463,13 @@ var PSVNavBarButton = function(psv, type, style) {
             evt.preventDefault();
             changeZoom(parseInt(touch.clientX));
         }
-    }
+    };
 
     /**
-     * Zoom change
-     * @param x (integer) Horizontal coordinate
-     * @return (void)
+     * Zoom change.
+     * @private
+     * @param {integer} x - Horizontal coordinate
+     * @return {void}
      **/
 
     var changeZoom = function(x) {
@@ -347,7 +478,7 @@ var PSVNavBarButton = function(psv, type, style) {
             var zoom_level = user_input / style.zoomRangeWidth * 100;
             psv.zoom(zoom_level);
         }
-    }
+    };
 
     // Some useful attributes
     var zoom_range_bg, zoom_range, zoom_value;
@@ -356,4 +487,4 @@ var PSVNavBarButton = function(psv, type, style) {
     // Create the button
     var button;
     create();
-}
+};
