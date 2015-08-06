@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.3
+ * Photo Sphere Viewer v2.3.1
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -1411,6 +1411,7 @@ var PSVNavBar = function(psv) {
 		container.style.zIndex = 10;
 		container.style.bottom = 0;
 		container.style.width = '100%';
+		container.style.boxSizing = 'content-box';
 
 		container.style.transition = 'bottom 0.4s ease-out';
 
