@@ -8,7 +8,13 @@ window.onload = function() {
 function loadPredefinedPanorama(evt) {
 	evt.preventDefault();
 
+	// Loader
+	var loader = document.createElement('div');
+	loader.className = 'loader';
+
+	// Panorama display
 	var div = document.getElementById('container');
+	div.style.height = '30px';
 
 	var PSV = new PhotoSphereViewer({
 		// Path to the panorama
@@ -27,7 +33,10 @@ function loadPredefinedPanorama(evt) {
 		size: {
 			width: '100%',
 			height: '500px'
-		}
+		},
+
+		// HTML loader
+		loading_html: loader
 	});
 }
 
@@ -57,7 +66,10 @@ function upload() {
 			size: {
 				width: '100%',
 				height: '500px'
-			}
+			},
+
+			// No XMP data
+			usexmpdata: false
 		});
 	};
 

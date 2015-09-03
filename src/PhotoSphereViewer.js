@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.3.1
+ * Photo Sphere Viewer v2.4
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -31,6 +31,13 @@
  * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {object} [args.pano_size=null] - The panorama size, if cropped (unnecessary if XMP data can be read)
+ * @param {number} [args.pano_size.full_width=null] - The full panorama width, before crop (the image width if `null`)
+ * @param {number} [args.pano_size.full_height=null] - The full panorama height, before crop (the image height if `null`)
+ * @param {number} [args.pano_size.cropped_width=null] - The cropped panorama width (the image width if `null`)
+ * @param {number} [args.pano_size.cropped_height=null] - The cropped panorama height (the image height if `null`)
+ * @param {number} [args.pano_size.cropped_x=null] - The cropped panorama horizontal offset relative to the full width (middle if `null`)
+ * @param {number} [args.pano_size.cropped_y=null] - The cropped panorama vertical offset relative to the full height (middle if `null`)
  * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
  * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
  * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
@@ -39,12 +46,16 @@
  * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
  * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
+ * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
+ * @param {number|string} [args.max_longitude=2π] - The maximal longitude to show
  * @param {number} [args.zoom_level=0] - The default zoom level, between 0 and 100
  * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
  * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
  * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
- * @param {integer} [args.theta_offset=1440] - (deprecated, use `anim_speed` instead) The π fraction to add to theta during the animation
+ * @param {boolean} [args.reverse_anim=true] - `true` if horizontal animation must be reversed when min/max longitude is reached (only if the whole circle is not described)
  * @param {string} [args.anim_speed=2rpm] - Animation speed in radians/degrees/revolutions per second/minute
+ * @param {string} [args.vertical_anim_speed=2rpm] - Vertical animation speed in radians/degrees/revolutions per second/minute
+ * @param {number|string} [args.vertical_anim_target=0] - Latitude to target during the autorotate animation, default to the equator
  * @param {boolean} [args.navbar=false] - Display the navigation bar if set to `true`
  * @param {object} [args.navbar_style] - Style of the navigation bar
  * @param {string} [args.navbar_style.backgroundColor=rgba(61, 61, 61, 0.5)] - Navigation bar background color
@@ -60,6 +71,7 @@
  * @param {number} [args.navbar_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
  * @param {string} [args.loading_msg=Loading…] - Loading message
  * @param {string} [args.loading_img=null] - Loading image URL or path (absolute or relative)
+ * @param {HTMLElement|string} [args.loading_html=null] - An HTML loader (element to append to the container or string representing the HTML)
  * @param {object} [args.size] - Final size of the panorama container (e.g. {width: 500, height: 300})
  * @param {(number|string)} [args.size.width] - Final width in percentage (e.g. `'50%'`) or pixels (e.g. `500` or `'500px'`) ; default to current width
  * @param {(number|string)} [args.size.height] - Final height in percentage or pixels ; default to current height
@@ -152,13 +164,25 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	this.load = function() {
-		// Loading indicator (text or image if given)
-		if (!!loading_img) {
+		container.innerHTML = '';
+
+		// Loading HTML: HTMLElement
+		if (!!loading_html && loading_html.nodeType === 1)
+			container.appendChild(loading_html);
+
+		// Loading HTML: string
+		else if (!!loading_html && typeof loading_html == 'string')
+			container.innerHTML = loading_html;
+
+		// Loading image
+		else if (!!loading_img) {
 			var loading = document.createElement('img');
 			loading.setAttribute('src', loading_img);
 			loading.setAttribute('alt', loading_msg);
 			container.appendChild(loading);
 		}
+
+		// Loading text
 		else
 			container.textContent = loading_msg;
 
@@ -189,11 +213,11 @@ var PhotoSphereViewer = function(args) {
 		};
 
 		// XMP data?
-		if (readxmp)
+		if (readxmp && !panorama.match(/^data:image\/[a-z]+;base64/))
 			loadXMP();
 
 		else
-			createBuffer(false);
+			createBuffer();
 	};
 
 	/**
@@ -236,31 +260,31 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		xhr.onreadystatechange = function() {
-				if (xhr.readyState == 4 && xhr.status == 200) {
-					// Metadata
-					var binary = xhr.responseText;
-					var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
-					var data = binary.substring(a, b);
+			if (xhr.readyState == 4 && xhr.status == 200) {
+				// Metadata
+				var binary = xhr.responseText;
+				var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
+				var data = binary.substring(a, b);
 
-					// No data retrieved
-					if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
-						createBuffer(false);
-						return;
-					}
-
-					// Useful values
-					var pano_data = {
-							full_width: parseInt(getAttribute(data, 'FullPanoWidthPixels')),
-							full_height: parseInt(getAttribute(data, 'FullPanoHeightPixels')),
-							cropped_width: parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels')),
-							cropped_height: parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels')),
-							cropped_x: parseInt(getAttribute(data, 'CroppedAreaLeftPixels')),
-							cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
-						};
-
-					createBuffer(pano_data);
+				// No data retrieved
+				if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
+					createBuffer(false);
+					return;
 				}
-			};
+
+				// Useful values
+				pano_size = {
+					full_width: parseInt(getAttribute(data, 'FullPanoWidthPixels')),
+					full_height: parseInt(getAttribute(data, 'FullPanoHeightPixels')),
+					cropped_width: parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels')),
+					cropped_height: parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels')),
+					cropped_x: parseInt(getAttribute(data, 'CroppedAreaLeftPixels')),
+					cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
+				};
+
+				createBuffer();
+			}
+		};
 
 		xhr.open('GET', panorama, true);
 		xhr.send(null);
@@ -269,59 +293,68 @@ var PhotoSphereViewer = function(args) {
 	/**
 	 * Creates an image in the right dimensions.
 	 * @private
-	 * @param {mixed} pano_data - An object containing the panorama XMP data (`false` if there is not)
 	 * @return {void}
 	 **/
 
-	var createBuffer = function(pano_data) {
+	var createBuffer = function() {
 		var img = new Image();
 
 		img.onload = function() {
-				// No XMP data?
-				if (!pano_data) {
-					pano_data = {
-						full_width: img.width,
-						full_height: img.height,
-						cropped_width: img.width,
-						cropped_height: img.height,
-						cropped_x: 0,
-						cropped_y: 0,
-					};
-				}
-
-				// Size limit for mobile compatibility
-				var max_width = 2048;
-				if (isWebGLSupported()) {
-					var canvas = document.createElement('canvas');
-					var ctx = canvas.getContext('webgl');
-					max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
-				}
-
-				// Buffer width (not too big)
-				var new_width = Math.min(pano_data.full_width, max_width);
-				var r = new_width / pano_data.full_width;
-
-				pano_data.full_width = new_width;
-				pano_data.cropped_width *= r;
-				pano_data.cropped_x *= r;
-				img.width = pano_data.cropped_width;
-
-				// Buffer height (proportional to the width)
-				pano_data.full_height *= r;
-				pano_data.cropped_height *= r;
-				pano_data.cropped_y *= r;
-				img.height = pano_data.cropped_height;
-
-				// Buffer creation
-				var buffer = document.createElement('canvas');
-				buffer.width = pano_data.full_width;
-				buffer.height = pano_data.full_height;
-
-				var ctx = buffer.getContext('2d');
-				ctx.drawImage(img, pano_data.cropped_x, pano_data.cropped_y, pano_data.cropped_width, pano_data.cropped_height);
-
-				loadTexture(buffer.toDataURL('image/jpeg'));
+			// Must the pano size be changed?
+			var default_pano_size = {
+				full_width: img.width,
+				full_height: img.height,
+				cropped_width: img.width,
+				cropped_height: img.height,
+				cropped_x: null,
+				cropped_y: null,
 			};
+
+			for (attr in pano_size) {
+				if (pano_size[attr] == null && default_pano_size[attr] !== undefined)
+					pano_size[attr] = default_pano_size[attr];
+			}
+
+			// Middle if cropped_x/y is null
+			if (pano_size.cropped_x == null)
+				pano_size.cropped_x = (pano_size.full_width - pano_size.cropped_width) / 2;
+
+			if (pano_size.cropped_y == null)
+				pano_size.cropped_y = (pano_size.full_height - pano_size.cropped_height) / 2;
+
+			// Size limit for mobile compatibility
+			var max_width = 2048;
+			if (isWebGLSupported()) {
+				var canvas = document.createElement('canvas');
+				var ctx = canvas.getContext('webgl');
+				max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+			}
+
+			// Buffer width (not too big)
+			var new_width = Math.min(pano_size.full_width, max_width);
+			var r = new_width / pano_size.full_width;
+
+			pano_size.full_width = new_width;
+			pano_size.cropped_width *= r;
+			pano_size.cropped_x *= r;
+			img.width = pano_size.cropped_width;
+
+			// Buffer height (proportional to the width)
+			pano_size.full_height *= r;
+			pano_size.cropped_height *= r;
+			pano_size.cropped_y *= r;
+			img.height = pano_size.cropped_height;
+
+			// Buffer creation
+			var buffer = document.createElement('canvas');
+			buffer.width = pano_size.full_width;
+			buffer.height = pano_size.full_height;
+
+			var ctx = buffer.getContext('2d');
+			ctx.drawImage(img, pano_size.cropped_x, pano_size.cropped_y, pano_size.cropped_width, pano_size.cropped_height);
+
+			loadTexture(buffer.toDataURL('image/jpeg'));
+		};
 
 		// CORS when the panorama is not given as a base64 string
 		if (!panorama.match(/^data:image\/[a-z]+;base64/))
@@ -542,15 +575,33 @@ var PhotoSphereViewer = function(args) {
 	**/
 
 	var autorotate = function() {
-		// Returns to the equator (lat = 0)
-		lat -= lat / 200;
+		lat -= (lat - anim_lat_target) * anim_lat_offset;
 
-		// Rotates the sphere
-		long += long_offset;
-		long -= Math.floor(long / (2.0 * Math.PI)) * 2.0 * Math.PI;
+		long += anim_long_offset;
+
+		var again = true;
+
+		if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE) {
+			long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
+
+			if (long == PSV_MIN_LONGITUDE || long == PSV_MAX_LONGITUDE) {
+				// Must we reverse the animation or simply stop it?
+				if (reverse_anim)
+					anim_long_offset *= -1;
+
+				else {
+					stopAutorotate();
+					again = false;
+				}
+			}
+		}
+
+		long = getAngleMeasure(long);
 
 		render();
-		autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
+
+		if (again)
+			autorotate_timeout = setTimeout(autorotate, PSV_ANIM_TIMEOUT);
 	};
 
 	/**
@@ -656,6 +707,69 @@ var PhotoSphereViewer = function(args) {
 			stereo_effect.setSize(viewer_size.width, viewer_size.height);
 			render();
 		}
+	};
+
+	/**
+	 * Returns the current position in radians
+	 * @return {object} A longitude/latitude couple
+	 **/
+
+	this.getPosition = function() {
+		return {
+			longitude: long,
+			latitude: lat
+		};
+	};
+
+	/**
+	 * Returns the current position in degrees
+	 * @return {object} A longitude/latitude couple
+	 **/
+
+	this.getPositionInDegrees = function() {
+		return {
+			longitude: long * 180.0 / Math.PI,
+			latitude: lat * 180.0 / Math.PI
+		};
+	};
+
+	/**
+	 * Moves to a specific position
+	 * @private
+	 * @param {number|string} longitude - The longitude of the targeted point
+	 * @param {number|string} latitude - The latitude of the targeted point
+	 * @return {void}
+	 **/
+
+	var moveTo = function(longitude, latitude) {
+		var long_tmp = parseAngle(longitude);
+
+		if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE)
+			long_tmp = stayBetween(long_tmp, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
+
+		var lat_tmp = parseAngle(latitude);
+
+		if (lat_tmp > Math.PI)
+			lat_tmp -= 2 * Math.PI;
+
+		lat_tmp = stayBetween(lat_tmp, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+
+		long = long_tmp;
+		lat = lat_tmp;
+
+		render();
+	};
+
+	/**
+	 * Moves to a specific position
+	 * @public
+	 * @param {number|string} longitude - The longitude of the targeted point
+	 * @param {number|string} latitude - The latitude of the targeted point
+	 * @return {void}
+	 **/
+
+	this.moveTo = function(longitude, latitude) {
+		moveTo(longitude, latitude);
 	};
 
 	/**
@@ -796,7 +910,13 @@ var PhotoSphereViewer = function(args) {
 
 	var move = function(x, y) {
 		if (mousedown) {
-			long = getAngleMeasure(long + (x - mouse_x) * PSV_LONG_OFFSET);
+			long += (x - mouse_x) * PSV_LONG_OFFSET;
+
+			if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE)
+				long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
+
+			long = getAngleMeasure(long);
+
 			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
@@ -861,7 +981,7 @@ var PhotoSphereViewer = function(args) {
 	**/
 
 	var onDeviceOrientation = function(coords) {
-		long = coords.longitude;
+		long = stayBetween(coords.longitude, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 		lat = stayBetween(coords.latitude, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
 		render();
@@ -959,8 +1079,8 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var fullscreenToggled = function() {
-		// Fix the (weird and ugly) Chrome behavior
-		if (!!document.webkitFullscreenElement) {
+		// Fix the (weird and ugly) Chrome and IE behaviors
+		if (!!document.webkitFullscreenElement || !!document.msFullscreenElement) {
 			real_viewer_size.width = container.style.width;
 			real_viewer_size.height = container.style.height;
 
@@ -969,7 +1089,7 @@ var PhotoSphereViewer = function(args) {
 			fitToContainer();
 		}
 
-		else if (!!container.webkitRequestFullscreen) {
+		else if (!!container.webkitRequestFullscreen || !!container.msRequestFullscreen) {
 			container.style.width = real_viewer_size.width;
 			container.style.height = real_viewer_size.height;
 			fitToContainer();
@@ -1052,13 +1172,13 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
-	 * Sets the animation speed.
+	 * Parses an animation speed.
 	 * @private
 	 * @param {string} speed - The speed, in radians/degrees/revolutions per second/minute
-	 * @return {void}
+	 * @return {number} The speed in radians
 	 **/
 
-	var setAnimSpeed = function(speed) {
+	var parseAnimationSpeed = function(speed) {
 		speed = speed.toString().trim();
 
 		// Speed extraction
@@ -1109,7 +1229,7 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		// Longitude offset
-		long_offset = rad_per_second * PSV_ANIM_TIMEOUT / 1000;
+		return rad_per_second * PSV_ANIM_TIMEOUT / 1000;
 	};
 
 	/**
@@ -1212,23 +1332,38 @@ var PhotoSphereViewer = function(args) {
 	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseFloat(args.long_offset) : Math.PI / 360.0;
 	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseFloat(args.lat_offset) : Math.PI / 180.0;
 
-	// Minimal and maximal fields of view in degrees
+	// Minimum and maximum fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
 
-	// Maximal tilt up / down angles
+	// Minimum tilt up / down angles
 	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? stayBetween(parseAngle(args.tilt_up_max), 0, Math.PI / 2.0) : Math.PI / 2.0;
 	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -stayBetween(parseAngle(args.tilt_down_max), 0, Math.PI / 2.0) : -Math.PI / 2.0;
 
+	// Minimum and maximum visible longitudes ((min = max) => whole circle)
+	var PSV_MIN_LONGITUDE = (args.min_longitude !== undefined) ? parseAngle(args.min_longitude) : 0;
+	var PSV_MAX_LONGITUDE = (args.max_longitude !== undefined) ? parseAngle(args.max_longitude) : 0;
+
+	if (PSV_MAX_LONGITUDE < PSV_MIN_LONGITUDE) {
+		var long_tmp = PSV_MIN_LONGITUDE;
+		PSV_MIN_LONGITUDE = PSV_MAX_LONGITUDE;
+		PSV_MAX_LONGITUDE = long_tmp;
+	}
+
 	// Default position
-	var lat = 0, long = 0;
+	var lat = 0, long = PSV_MIN_LONGITUDE;
 
 	if (args.default_position !== undefined) {
-		if (args.default_position.lat !== undefined)
-			lat = stayBetween(parseAngle(args.default_position.lat), PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+		if (args.default_position.lat !== undefined) {
+			var lat_angle = parseAngle(args.default_position.lat);
+			if (lat_angle > Math.PI)
+				lat_angle -= 2 * Math.PI;
+
+			lat = stayBetween(lat_angle, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+		}
 
 		if (args.default_position.long !== undefined)
-			long = parseAngle(args.default_position.long);
+			long = stayBetween(parseAngle(args.default_position.long), PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 	}
 
 	// Default zoom level
@@ -1252,14 +1387,28 @@ var PhotoSphereViewer = function(args) {
 			anim_delay = false;
 	}
 
-	// Deprecated: horizontal offset for the animation
-	var long_offset = (args.theta_offset !== undefined) ? Math.PI / parseInt(args.theta_offset) : Math.PI / 1440;
-
 	// Horizontal animation speed
-	if (args.anim_speed !== undefined)
-		setAnimSpeed(args.anim_speed);
-	else
-		setAnimSpeed('2rpm');
+	var anim_long_offset = (args.anim_speed !== undefined) ? parseAnimationSpeed(args.anim_speed) : parseAnimationSpeed('2rpm');
+
+	// Reverse the horizontal animation if autorotate reaches the min/max longitude
+	var reverse_anim = true;
+
+	if (args.reverse_anim !== undefined)
+		reverse_anim = !!args.reverse_anim;
+
+	// Vertical animation speed
+	var anim_lat_offset = (args.vertical_anim_speed !== undefined) ? parseAnimationSpeed(args.vertical_anim_speed) : parseAnimationSpeed('2rpm');
+
+	// Vertical animation target (default: equator)
+	var anim_lat_target = 0;
+
+	if (args.vertical_anim_target !== undefined) {
+		var lat_target_angle = parseAngle(args.vertical_anim_target);
+		if (lat_target_angle > Math.PI)
+			lat_target_angle -= 2 * Math.PI;
+
+		anim_lat_target = stayBetween(lat_target_angle, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+	}
 
 	// Navigation bar
 	var navbar = new PSVNavBar(this);
@@ -1299,11 +1448,33 @@ var PhotoSphereViewer = function(args) {
 	// Must we read XMP data?
 	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
 
+	// Cropped size?
+	var pano_size = {
+		full_width: null,
+		full_height: null,
+		cropped_width: null,
+		cropped_height: null,
+		cropped_x: null,
+		cropped_y: null
+	};
+
+	if (args.pano_size !== undefined) {
+		for (attr in pano_size) {
+			if (args.pano_size[attr] !== undefined)
+				pano_size[attr] = parseInt(args.pano_size[attr]);
+		}
+
+		readxmp = false;
+	}
+
 	// Loading message
 	var loading_msg = (args.loading_msg !== undefined) ? args.loading_msg.toString() : 'Loading…';
 
 	// Loading image
 	var loading_img = (args.loading_img !== undefined) ? args.loading_img.toString() : null;
+
+	// Loading HTML
+	var loading_html = (args.loading_html !== undefined) ? args.loading_html : null;
 
 	// Function to call once panorama is ready?
 	if (args.onready !== undefined)
