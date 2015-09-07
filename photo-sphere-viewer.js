@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.4
+ * Photo Sphere Viewer v2.4.1
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -150,11 +150,13 @@ var PhotoSphereViewer = function(args) {
 	 * Returns the measure of an angle (between 0 and 2π).
 	 * @private
 	 * @param {number} angle - The angle to reduce
+	 * @param {boolean} [is_2pi_allowed=false] - Can the measure be equal to 2π?
 	 * @return {number} The wanted measure
 	 **/
 
-	var getAngleMeasure = function(angle) {
-		return angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
+	var getAngleMeasure = function(angle, is_2pi_allowed) {
+		is_2pi_allowed = (is_2pi_allowed !== undefined) ? !!is_2pi_allowed : false;
+		return (is_2pi_allowed && angle == 2 * Math.PI) ? 2 * Math.PI :  angle - Math.floor(angle / (2.0 * Math.PI)) * 2.0 * Math.PI;
 	};
 
 	/**
@@ -581,7 +583,7 @@ var PhotoSphereViewer = function(args) {
 
 		var again = true;
 
-		if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE) {
+		if (!whole_circle) {
 			long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 
 			if (long == PSV_MIN_LONGITUDE || long == PSV_MAX_LONGITUDE) {
@@ -596,7 +598,7 @@ var PhotoSphereViewer = function(args) {
 			}
 		}
 
-		long = getAngleMeasure(long);
+		long = getAngleMeasure(long, true);
 
 		render();
 
@@ -744,7 +746,7 @@ var PhotoSphereViewer = function(args) {
 	var moveTo = function(longitude, latitude) {
 		var long_tmp = parseAngle(longitude);
 
-		if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE)
+		if (!whole_circle)
 			long_tmp = stayBetween(long_tmp, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 
 		var lat_tmp = parseAngle(latitude);
@@ -912,10 +914,10 @@ var PhotoSphereViewer = function(args) {
 		if (mousedown) {
 			long += (x - mouse_x) * PSV_LONG_OFFSET;
 
-			if (PSV_MIN_LONGITUDE != PSV_MAX_LONGITUDE)
+			if (!whole_circle)
 				long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 
-			long = getAngleMeasure(long);
+			long = getAngleMeasure(long, true);
 
 			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
@@ -1340,14 +1342,29 @@ var PhotoSphereViewer = function(args) {
 	var PSV_TILT_UP_MAX = (args.tilt_up_max !== undefined) ? stayBetween(parseAngle(args.tilt_up_max), 0, Math.PI / 2.0) : Math.PI / 2.0;
 	var PSV_TILT_DOWN_MAX = (args.tilt_down_max !== undefined) ? -stayBetween(parseAngle(args.tilt_down_max), 0, Math.PI / 2.0) : -Math.PI / 2.0;
 
-	// Minimum and maximum visible longitudes ((min = max) => whole circle)
-	var PSV_MIN_LONGITUDE = (args.min_longitude !== undefined) ? parseAngle(args.min_longitude) : 0;
-	var PSV_MAX_LONGITUDE = (args.max_longitude !== undefined) ? parseAngle(args.max_longitude) : 0;
+	// Minimum and maximum visible longitudes
+	var min_long = (args.min_longitude !== undefined) ? parseAngle(args.min_longitude) : 0;
+	var max_long = (args.max_longitude !== undefined) ? parseAngle(args.max_longitude) : 0;
 
-	if (PSV_MAX_LONGITUDE < PSV_MIN_LONGITUDE) {
-		var long_tmp = PSV_MIN_LONGITUDE;
-		PSV_MIN_LONGITUDE = PSV_MAX_LONGITUDE;
-		PSV_MAX_LONGITUDE = long_tmp;
+	var whole_circle = (min_long == max_long);
+
+	if (whole_circle) {
+		min_long = 0;
+		max_long = 2 * Math.PI;
+	}
+
+	else if (max_long == 0)
+		max_long = 2 * Math.PI;
+
+	var PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE;
+	if (min_long < max_long) {
+		PSV_MIN_LONGITUDE = min_long;
+		PSV_MAX_LONGITUDE = max_long;
+	}
+
+	else {
+		PSV_MIN_LONGITUDE = max_long;
+		PSV_MAX_LONGITUDE = min_long;
 	}
 
 	// Default position
