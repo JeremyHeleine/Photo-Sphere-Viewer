@@ -36,7 +36,11 @@ function loadPredefinedPanorama(evt) {
 		},
 
 		// HTML loader
-		loading_html: loader
+		loading_html: loader,
+
+		// Slower movements
+		long_offset: Math.PI / 720,
+		lat_offset: Math.PI / 360
 	});
 }
 
