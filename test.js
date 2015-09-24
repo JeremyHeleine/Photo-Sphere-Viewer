@@ -18,7 +18,7 @@ function loadPredefinedPanorama(evt) {
 
 	var PSV = new PhotoSphereViewer({
 		// Path to the panorama
-		panorama: 'sun.jpg',
+		panorama: 'examples/sun.jpg',
 
 		// Container
 		container: div,
@@ -36,11 +36,7 @@ function loadPredefinedPanorama(evt) {
 		},
 
 		// HTML loader
-		loading_html: loader,
-
-		// Slower movements
-		long_offset: Math.PI / 720,
-		lat_offset: Math.PI / 360
+		loading_html: loader
 	});
 }
 

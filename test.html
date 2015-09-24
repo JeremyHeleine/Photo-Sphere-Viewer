@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>Photo Sphere Viewer</title>
+		<meta name="viewport" content="initial-scale=1.0" />
+		<link rel="stylesheet" href="./examples/example1.css" />
+	</head>
+
+	<body>
+		<header>
+			<h1>Photo Sphere Viewer's test file</h1>
+		</header>
+
+		<div id="content">
+			<p>This file seems to be a copy of the <code>example1.html</code> file… and it's the case. But there are some differences. As a consequence, you shouldn't take it as an example of use.</p>
+
+			<p>In fact, in this file, Photo Sphere Viewer is not included in its minified version. Not even in its complete build version. No, this file includes all the source files used by Photo Sphere Viewer.</p>
+
+			<p>It's not a thing to do on a production website. This file is here for only one reason: testing. As the linked files are the source ones, we can test with it the latest modifications, without building the complete library. The build mustn't be generated before a new version is ready.</p>
+
+			<p>You can test Photo Sphere Viewer right below.</p>
+
+			<div id="container"></div>
+
+			<p style="text-align: center;">
+				<a href="#" id="go">Load the predefined panorama</a>
+			</p>
+
+			<p>And, right below, you can try the "upload way".</p>
+
+			<div id="your-pano"></div>
+
+			<form method="get" action="example1.html">
+				<p style="text-align: center;">
+					<input type="file" name="pano" id="pano" />
+				</p>
+			</form>
+		</div>
+
+		<!-- External library -->
+		<script src="./three.min.js"></script>
+
+		<!-- External library, but included in the build -->
+		<script src="./src/sphoords.js"></script>
+
+		<!-- Photo Sphere Viewer files -->
+		<script src="./src/PhotoSphereViewer.js"></script>
+		<script src="./src/PSVNavBar.js"></script>
+		<script src="./src/PSVNavBarButton.js"></script>
+
+		<!-- Test script -->
+		<script src="./test.js"></script>
+	</body>
+
+</html>

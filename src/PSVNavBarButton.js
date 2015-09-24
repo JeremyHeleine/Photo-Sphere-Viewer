@@ -1,28 +1,3 @@
-/*
- * Photo Sphere Viewer v2.3.1
- * http://jeremyheleine.me/photo-sphere-viewer
- *
- * Copyright (c) 2014,2015 Jérémy Heleine
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
 /**
  * Represents a navigation bar button.
  * @class
@@ -64,6 +39,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Autorotate button
         		button = document.createElement('div');
         		button.style.cssFloat = 'left';
+        		button.style.boxSizing = 'inherit';
         		button.style.padding = '10px';
         		button.style.width = style.buttonsHeight + 'px';
         		button.style.height = style.buttonsHeight + 'px';
@@ -74,6 +50,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 addEvent(button, 'click', function(){psv.toggleAutorotate();});
 
         		var autorotate_sphere = document.createElement('div');
+        		autorotate_sphere.style.boxSizing = 'inherit';
         		autorotate_sphere.style.width = autorotate_sphere_width + 'px';
         		autorotate_sphere.style.height = autorotate_sphere_width + 'px';
         		autorotate_sphere.style.borderRadius = '50%';
@@ -81,6 +58,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		button.appendChild(autorotate_sphere);
 
         		var autorotate_equator = document.createElement('div');
+        		autorotate_equator.style.boxSizing = 'inherit';
         		autorotate_equator.style.width = autorotate_sphere_width + 'px';
         		autorotate_equator.style.height = autorotate_equator_height + 'px';
         		autorotate_equator.style.borderRadius = '50%';
@@ -99,10 +77,12 @@ var PSVNavBarButton = function(psv, type, style) {
                 // Zoom container
                 button = document.createElement('div');
                 button.style.cssFloat = 'left';
+        		button.style.boxSizing = 'inherit';
 
         		// Zoom "-"
         		var zoom_minus = document.createElement('div');
         		zoom_minus.style.cssFloat = 'left';
+        		zoom_minus.style.boxSizing = 'inherit';
         		zoom_minus.style.padding = '10px';
         		zoom_minus.style.height = style.buttonsHeight + 'px';
         		zoom_minus.style.backgroundColor = style.buttonsBackgroundColor;
@@ -117,12 +97,14 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Zoom range
         		zoom_range_bg = document.createElement('div');
         		zoom_range_bg.style.cssFloat = 'left';
+        		zoom_range_bg.style.boxSizing = 'inherit';
         		zoom_range_bg.style.padding = (10 + (style.buttonsHeight - style.zoomRangeThickness) / 2) + 'px 5px';
         		zoom_range_bg.style.backgroundColor = style.buttonsBackgroundColor;
                 zoom_range_bg.style.cursor = 'pointer';
                 button.appendChild(zoom_range_bg);
 
         		zoom_range = document.createElement('div');
+        		zoom_range.style.boxSizing = 'inherit';
         		zoom_range.style.width = style.zoomRangeWidth + 'px';
         		zoom_range.style.height = style.zoomRangeThickness + 'px';
         		zoom_range.style.backgroundColor = style.buttonsColor;
@@ -133,6 +115,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		zoom_value.style.position = 'absolute';
         		zoom_value.style.top = ((style.zoomRangeThickness - style.zoomRangeDisk) / 2) + 'px';
         		zoom_value.style.left = -(style.zoomRangeDisk / 2) + 'px';
+        		zoom_value.style.boxSizing = 'inherit';
         		zoom_value.style.width = style.zoomRangeDisk + 'px';
         		zoom_value.style.height = style.zoomRangeDisk + 'px';
         		zoom_value.style.borderRadius = '50%';
@@ -150,6 +133,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Zoom "+"
         		var zoom_plus = document.createElement('div');
         		zoom_plus.style.cssFloat = 'left';
+        		zoom_plus.style.boxSizing = 'inherit';
         		zoom_plus.style.padding = '10px';
         		zoom_plus.style.height = style.buttonsHeight + 'px';
         		zoom_plus.style.backgroundColor = style.buttonsBackgroundColor;
@@ -177,6 +161,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Fullscreen button
         		button = document.createElement('div');
         		button.style.cssFloat = 'right';
+        		button.style.boxSizing = 'inherit';
         		button.style.padding = '10px';
         		button.style.width = fullscreen_width + 'px';
         		button.style.height = style.buttonsHeight + 'px';
@@ -188,6 +173,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Fullscreen icon left side
         		var fullscreen_left = document.createElement('div');
         		fullscreen_left.style.cssFloat = 'left';
+        		fullscreen_left.style.boxSizing = 'inherit';
         		fullscreen_left.style.width = style.fullscreenThickness + 'px';
         		fullscreen_left.style.height = fullscreen_vertical_space + 'px';
         		fullscreen_left.style.borderStyle = 'solid';
@@ -198,6 +184,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Fullscreen icon top/bottom sides (first half)
         		var fullscreen_tb_1 = document.createElement('div');
         		fullscreen_tb_1.style.cssFloat = 'left';
+        		fullscreen_tb_1.style.boxSizing = 'inherit';
         		fullscreen_tb_1.style.width = fullscreen_horizontal_border + 'px';
         		fullscreen_tb_1.style.height = fullscreen_vertical_int + 'px';
         		fullscreen_tb_1.style.borderStyle = 'solid';
@@ -208,6 +195,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Fullscreen icon top/bottom sides (second half)
         		var fullscreen_tb_2 = document.createElement('div');
         		fullscreen_tb_2.style.cssFloat = 'left';
+        		fullscreen_tb_2.style.boxSizing = 'inherit';
         		fullscreen_tb_2.style.marginLeft = fullscreen_horizontal_space + 'px';
         		fullscreen_tb_2.style.width = fullscreen_horizontal_border + 'px';
         		fullscreen_tb_2.style.height = fullscreen_vertical_int + 'px';
@@ -219,6 +207,7 @@ var PSVNavBarButton = function(psv, type, style) {
         		// Fullscreen icon right side
         		var fullscreen_right = document.createElement('div');
         		fullscreen_right.style.cssFloat = 'left';
+        		fullscreen_right.style.boxSizing = 'inherit';
         		fullscreen_right.style.width = style.fullscreenThickness + 'px';
         		fullscreen_right.style.height = fullscreen_vertical_space + 'px';
         		fullscreen_right.style.borderStyle = 'solid';
@@ -244,6 +233,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 // Gyroscope button
         		button = document.createElement('div');
         		button.style.cssFloat = 'right';
+        		button.style.boxSizing = 'inherit';
         		button.style.padding = '10px';
                 button.style.width = style.buttonsHeight + 'px';
                 button.style.height = style.buttonsHeight + 'px';
@@ -254,6 +244,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 addEvent(button, 'click', function(){psv.toggleDeviceOrientation();});
 
                 var gyroscope_sphere = document.createElement('div');
+        		gyroscope_sphere.style.boxSizing = 'inherit';
                 gyroscope_sphere.style.width = gyroscope_sphere_width + 'px';
                 gyroscope_sphere.style.height = gyroscope_sphere_width + 'px';
                 gyroscope_sphere.style.borderRadius = '50%';
@@ -261,6 +252,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(gyroscope_sphere);
 
                 var gyroscope_hor_ellipsis = document.createElement('div');
+        		gyroscope_hor_ellipsis.style.boxSizing = 'inherit';
                 gyroscope_hor_ellipsis.style.width = gyroscope_ellipses_big_axis + 'px';
                 gyroscope_hor_ellipsis.style.height = gyroscope_ellipses_little_axis + 'px';
                 gyroscope_hor_ellipsis.style.borderRadius = '50%';
@@ -273,6 +265,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(gyroscope_hor_ellipsis);
 
                 var gyroscope_ver_ellipsis = document.createElement('div');
+        		gyroscope_ver_ellipsis.style.boxSizing = 'inherit';
                 gyroscope_ver_ellipsis.style.width = gyroscope_ellipses_little_axis + 'px';
                 gyroscope_ver_ellipsis.style.height = gyroscope_ellipses_big_axis + 'px';
                 gyroscope_ver_ellipsis.style.borderRadius = '50%';
@@ -300,6 +293,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button = document.createElement('div');
                 button.style.cssFloat = 'right';
                 button.style.position = 'relative';
+        		button.style.boxSizing = 'inherit';
                 button.style.padding = '10px';
                 button.style.width = vr_width + 'px';
                 button.style.height = style.buttonsHeight + 'px';
@@ -310,6 +304,7 @@ var PSVNavBarButton = function(psv, type, style) {
 
                 // Icon
                 var vr_rect = document.createElement('div');
+        		vr_rect.style.boxSizing = 'inherit';
                 vr_rect.style.width = vr_width + 'px';
                 vr_rect.style.height = style.buttonsHeight + 'px';
                 vr_rect.style.borderRadius = style.virtualRealityBorderRadius + 'px';
@@ -317,6 +312,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(vr_rect);
 
                 var left_eye = document.createElement('div');
+        		left_eye.style.boxSizing = 'inherit';
                 left_eye.style.width = vr_eye_diameter + 'px';
                 left_eye.style.height = vr_eye_diameter + 'px';
                 left_eye.style.position = 'absolute';
@@ -327,6 +323,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(left_eye);
 
                 var right_eye = document.createElement('div');
+        		right_eye.style.boxSizing = 'inherit';
                 right_eye.style.width = vr_eye_diameter + 'px';
                 right_eye.style.height = vr_eye_diameter + 'px';
                 right_eye.style.position = 'absolute';
@@ -337,6 +334,7 @@ var PSVNavBarButton = function(psv, type, style) {
                 button.appendChild(right_eye);
 
                 var nose = document.createElement('div');
+        		nose.style.boxSizing = 'inherit';
                 nose.style.width = vr_eye_diameter + 'px';
                 nose.style.height = (style.buttonsHeight / 2) + 'px';
                 nose.style.position = 'absolute';
