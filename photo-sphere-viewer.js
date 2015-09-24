@@ -31,6 +31,7 @@
  * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {boolean} [args.cors_anonymous=true] - `true` There will be no exchange of user credentials via cookies, client-side SSL certificates.
  * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
  * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
  * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
@@ -324,8 +325,10 @@ var PhotoSphereViewer = function(args) {
 			};
 
 		// CORS when the panorama is not given as a base64 string
-		if (!panorama.match(/^data:image\/[a-z]+;base64/))
-			img.setAttribute('crossOrigin', 'anonymous');
+        if (args.cors_anonymous) {
+		    if (!panorama.match(/^data:image\/[a-z]+;base64/))
+			    img.setAttribute('crossOrigin', 'anonymous');
+        }
 
 		img.src = panorama;
 	};
