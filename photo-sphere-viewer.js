@@ -31,6 +31,7 @@
  * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {boolean} [args.cors_anonymous=true] - `true` There will be no exchange of user credentials via cookies, client-side SSL certificates.
  * @param {object} [args.pano_size=null] - The panorama size, if cropped (unnecessary if XMP data can be read)
  * @param {number} [args.pano_size.full_width=null] - The full panorama width, before crop (the image width if `null`)
  * @param {number} [args.pano_size.full_height=null] - The full panorama height, before crop (the image height if `null`)
@@ -359,8 +360,10 @@ var PhotoSphereViewer = function(args) {
 		};
 
 		// CORS when the panorama is not given as a base64 string
-		if (!panorama.match(/^data:image\/[a-z]+;base64/))
-			img.setAttribute('crossOrigin', 'anonymous');
+        if (args.cors_anonymous) {
+		    if (!panorama.match(/^data:image\/[a-z]+;base64/))
+			    img.setAttribute('crossOrigin', 'anonymous');
+        }
 
 		img.src = panorama;
 	};
