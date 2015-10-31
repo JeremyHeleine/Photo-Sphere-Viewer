@@ -236,6 +236,11 @@ var PhotoSphereViewer = function(args) {
 		return data.substring(a, b);
 	};
 
+	var getNodeValue = function(data, attr) {
+		var a = data.indexOf('<GPano:' + attr + ">") + attr.length + 8, b = data.indexOf('</GPano:' + attr + ">");
+		return data.substring(a, b);
+	};
+
 	/**
 	 * Loads the XMP data with AJAX.
 	 * @private
@@ -263,7 +268,10 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		xhr.onreadystatechange = function() {
+            var full_width, full_height, cropped_width, cropped_height, cropped_x, cropped_y;
+
 			if (xhr.readyState == 4 && xhr.status == 200) {
+
 				// Metadata
 				var binary = xhr.responseText;
 				var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
@@ -275,14 +283,33 @@ var PhotoSphereViewer = function(args) {
 					return;
 				}
 
+                // auto detect format of xmp meta data, values can be stored as xml attributes or node values
+                full_width = getAttribute(data, 'FullPanoWidthPixels');
+                full_width = isNaN(full_width) ? getNodeValue(data, 'FullPanoWidthPixels') : full_width;
+
+                full_height = getAttribute(data, 'FullPanoHeightPixels');
+                full_height = isNaN(full_height) ? getNodeValue(data, 'FullPanoHeightPixels') : full_height;
+
+                cropped_width = getAttribute(data, 'CroppedAreaImageWidthPixels');
+                cropped_width = isNaN(cropped_width) ? getNodeValue(data, 'CroppedAreaImageWidthPixels') : cropped_width;
+
+                cropped_height = getAttribute(data, 'CroppedAreaImageHeightPixels');
+                cropped_height = isNaN(cropped_height) ? getNodeValue(data, 'CroppedAreaImageHeightPixels') : cropped_height;
+
+                cropped_x = getAttribute(data, 'CroppedAreaLeftPixels');
+                cropped_x = isNaN(cropped_x) ? getNodeValue(data, 'CroppedAreaLeftPixels') : cropped_x;
+
+                cropped_y = getAttribute(data, 'CroppedAreaTopPixels');
+                cropped_y = isNaN(cropped_y) ? getNodeValue(data, 'CroppedAreaTopPixels') : cropped_y;
+
 				// Useful values
 				pano_size = {
-					full_width: parseInt(getAttribute(data, 'FullPanoWidthPixels')),
-					full_height: parseInt(getAttribute(data, 'FullPanoHeightPixels')),
-					cropped_width: parseInt(getAttribute(data, 'CroppedAreaImageWidthPixels')),
-					cropped_height: parseInt(getAttribute(data, 'CroppedAreaImageHeightPixels')),
-					cropped_x: parseInt(getAttribute(data, 'CroppedAreaLeftPixels')),
-					cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
+					full_width: parseInt(full_width),
+					full_height: parseInt(full_height),
+					cropped_width: parseInt(cropped_width),
+					cropped_height: parseInt(cropped_height),
+					cropped_x: parseInt(cropped_x),
+					cropped_y: parseInt(cropped_y),
 				};
 
 				createBuffer();
