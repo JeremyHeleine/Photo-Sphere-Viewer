@@ -1035,6 +1035,16 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Returns the current zoom level.
+	 * @public
+	 * @return {integer} The current zoom level (between 0 and 100)
+	 **/
+
+	this.getZoomLevel = function() {
+		return zoom_lvl;
+	};
+
+	/**
 	 * Sets the new zoom level.
 	 * @public
 	 * @param {integer} level - New zoom level
