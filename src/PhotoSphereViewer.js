@@ -31,6 +31,7 @@
  * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
+ * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
  * @param {object} [args.pano_size=null] - The panorama size, if cropped (unnecessary if XMP data can be read)
  * @param {number} [args.pano_size.full_width=null] - The full panorama width, before crop (the image width if `null`)
  * @param {number} [args.pano_size.full_height=null] - The full panorama height, before crop (the image height if `null`)
@@ -312,24 +313,24 @@ var PhotoSphereViewer = function(args) {
 				cropped_y: null,
 			};
 
-			for (attr in pano_size) {
-				if (pano_size[attr] == null && default_pano_size[attr] !== undefined)
+			for (var attr in pano_size) {
+				if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
 					pano_size[attr] = default_pano_size[attr];
 			}
 
 			// Middle if cropped_x/y is null
-			if (pano_size.cropped_x == null)
+			if (pano_size.cropped_x === null)
 				pano_size.cropped_x = (pano_size.full_width - pano_size.cropped_width) / 2;
 
-			if (pano_size.cropped_y == null)
+			if (pano_size.cropped_y === null)
 				pano_size.cropped_y = (pano_size.full_height - pano_size.cropped_height) / 2;
 
 			// Size limit for mobile compatibility
 			var max_width = 2048;
 			if (isWebGLSupported()) {
-				var canvas = document.createElement('canvas');
-				var ctx = canvas.getContext('webgl');
-				max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+				var canvas_tmp = document.createElement('canvas');
+				var ctx_tmp = canvas_tmp.getContext('webgl');
+				max_width = ctx_tmp.getParameter(ctx_tmp.MAX_TEXTURE_SIZE);
 			}
 
 			// Buffer width (not too big)
@@ -359,7 +360,7 @@ var PhotoSphereViewer = function(args) {
 		};
 
 		// CORS when the panorama is not given as a base64 string
-		if (!panorama.match(/^data:image\/[a-z]+;base64/))
+		if (cors_anonymous && !panorama.match(/^data:image\/[a-z]+;base64/))
 			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
@@ -381,7 +382,7 @@ var PhotoSphereViewer = function(args) {
 			texture.image = img;
 
 			createScene(texture);
-		}
+		};
 
 		loader.load(path, onLoad);
 	};
@@ -892,7 +893,7 @@ var PhotoSphereViewer = function(args) {
 				var d = dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY);
 				var diff = d - touchzoom_dist;
 
-				if (diff != 0) {
+				if (diff !== 0) {
 					var direction = diff / Math.abs(diff);
 					zoom(zoom_lvl + direction);
 
@@ -1002,7 +1003,7 @@ var PhotoSphereViewer = function(args) {
 
 		var delta = (evt.detail) ? -evt.detail : evt.wheelDelta;
 
-		if (delta != 0) {
+		if (delta !== 0) {
 			var direction = parseInt(delta / Math.abs(delta));
 			zoom(zoom_lvl + direction);
 		}
@@ -1265,7 +1266,7 @@ var PhotoSphereViewer = function(args) {
 
 	var setNewViewerSize = function(size) {
 		// Checks all the values
-		for (dim in size) {
+		for (var dim in size) {
 			// Only width and height matter
 			if (dim == 'width' || dim == 'height') {
 				// Size extraction
@@ -1353,7 +1354,7 @@ var PhotoSphereViewer = function(args) {
 		max_long = 2 * Math.PI;
 	}
 
-	else if (max_long == 0)
+	else if (max_long === 0)
 		max_long = 2 * Math.PI;
 
 	var PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE;
@@ -1462,8 +1463,11 @@ var PhotoSphereViewer = function(args) {
 
 	var actions = {};
 
-	// Must we read XMP data?
+	// Do we have to read XMP data?
 	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
+
+	// Can we use CORS?
+	var cors_anonymous = (args.cors_anonymous !== undefined) ? !!args.cors_anonymous : true;
 
 	// Cropped size?
 	var pano_size = {
@@ -1476,7 +1480,7 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	if (args.pano_size !== undefined) {
-		for (attr in pano_size) {
+		for (var attr in pano_size) {
 			if (args.pano_size[attr] !== undefined)
 				pano_size[attr] = parseInt(args.pano_size[attr]);
 		}
