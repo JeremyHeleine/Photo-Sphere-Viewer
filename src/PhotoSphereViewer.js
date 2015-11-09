@@ -447,8 +447,10 @@ var PhotoSphereViewer = function(args) {
 			addEvent(document, 'touchend', onMouseUp);
 			addEvent(document, 'touchmove', onTouchMove);
 
-			addEvent(canvas_container, 'mousewheel', onMouseWheel);
-			addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+			if (scroll_to_zoom) {
+				addEvent(canvas_container, 'mousewheel', onMouseWheel);
+				addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+			}
 		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
@@ -1442,6 +1444,9 @@ var PhotoSphereViewer = function(args) {
 
 	if (!user_interactions_allowed)
 		display_navbar = false;
+
+	// Is "scroll to zoom" allowed?
+	var scroll_to_zoom = (args.allow_scroll_to_zoom !== undefined) ? !!args.allow_scroll_to_zoom : true;
 
 	// Container
 	var container = args.container;
