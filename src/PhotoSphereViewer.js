@@ -224,6 +224,26 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Returns Google's XMP data.
+	 * @private
+	 * @param {string} file - Binary file
+	 * @return {string} The data
+	 **/
+
+	var getXMPData = function(file) {
+		var a = 0, b = 0;
+		var data = '';
+
+		while ((a = file.indexOf('<x:xmpmeta', b)) != -1 && (b = file.indexOf('</x:xmpmeta>', a)) != -1) {
+			data = file.substring(a, b);
+			if (data.indexOf('GPano:') != -1)
+				return data;
+		}
+
+		return '';
+	};
+
+	/**
 	 * Returns the value of a given attribute in the panorama metadata.
 	 * @private
 	 * @param {string} data - The panorama metadata
@@ -265,13 +285,10 @@ var PhotoSphereViewer = function(args) {
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				// Metadata
-				var binary = xhr.responseText;
-				var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
-				var data = binary.substring(a, b);
+				var data = getXMPData(xhr.responseText);
 
-				// No data retrieved
-				if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
-					createBuffer(false);
+				if (!data.length) {
+					createBuffer();
 					return;
 				}
 
@@ -285,6 +302,7 @@ var PhotoSphereViewer = function(args) {
 					cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
 				};
 
+				recalculate_coords = true;
 				createBuffer();
 			}
 		};
@@ -310,12 +328,29 @@ var PhotoSphereViewer = function(args) {
 				cropped_width: img.width,
 				cropped_height: img.height,
 				cropped_x: null,
-				cropped_y: null,
+				cropped_y: null
 			};
 
 			for (var attr in pano_size) {
 				if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
 					pano_size[attr] = default_pano_size[attr];
+			}
+
+			// Do we have to recalculate the coordinates?
+			if (recalculate_coords) {
+				if (pano_size.cropped_width != default_pano_size.cropped_width) {
+					var rx = default_pano_size.cropped_width / pano_size.cropped_width;
+					pano_size.cropped_width = default_pano_size.cropped_width;
+					pano_size.full_width *= rx;
+					pano_size.cropped_x *= rx;
+				}
+
+				if (pano_size.cropped_height != default_pano_size.cropped_height) {
+					var ry = default_pano_size.cropped_height / pano_size.cropped_height;
+					pano_size.cropped_height = default_pano_size.cropped_height;
+					pano_size.full_height *= ry;
+					pano_size.cropped_y *= ry;
+				}
 			}
 
 			// Middle if cropped_x/y is null
@@ -1502,6 +1537,9 @@ var PhotoSphereViewer = function(args) {
 
 		readxmp = false;
 	}
+
+	// Will we have to recalculate the coordinates?
+	var recalculate_coords = false;
 
 	// Loading message
 	var loading_msg = (args.loading_msg !== undefined) ? args.loading_msg.toString() : 'Loading…';
