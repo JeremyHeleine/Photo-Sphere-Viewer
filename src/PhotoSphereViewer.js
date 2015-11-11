@@ -70,6 +70,7 @@
  * @param {number} [args.navbar_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
  * @param {number} [args.navbar_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width/height)
  * @param {number} [args.navbar_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+ * @param {number} [args.eyes_offset=5] - Eyes offset in VR mode
  * @param {string} [args.loading_msg=Loading…] - Loading message
  * @param {string} [args.loading_img=null] - Loading image URL or path (absolute or relative)
  * @param {HTMLElement|string} [args.loading_html=null] - An HTML loader (element to append to the container or string representing the HTML)
@@ -550,7 +551,7 @@ var PhotoSphereViewer = function(args) {
 
 	var startStereo = function() {
 		stereo_effect = new THREE.StereoEffect(renderer);
-		stereo_effect.eyeSeparation = 5;
+		stereo_effect.eyeSeparation = eyes_offset;
 		stereo_effect.setSize(viewer_size.width, viewer_size.height);
 
 		startDeviceOrientation();
@@ -1492,6 +1493,9 @@ var PhotoSphereViewer = function(args) {
 
 	// Is "scroll to zoom" allowed?
 	var scroll_to_zoom = (args.allow_scroll_to_zoom !== undefined) ? !!args.allow_scroll_to_zoom : true;
+
+	// Eyes offset in VR mode
+	var eyes_offset = (args.eyes_offset !== undefined) ? parseFloat(args.eyes_offset) : 5;
 
 	// Container
 	var container = args.container;
