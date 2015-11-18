@@ -45,6 +45,7 @@
  * @param {number} [args.min_fov=30] - The minimal field of view, in degrees, between 1 and 179
  * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
  * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
+ * @param {boolean} [args.allow_scroll_to_zoom=true] - It set to `false`, the user won't be able to scroll with their mouse to zoom
  * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
@@ -639,6 +640,11 @@ var PhotoSphereViewer = function(args) {
 
 		long = getAngleMeasure(long, true);
 
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
+
 		render();
 
 		if (again)
@@ -797,6 +803,19 @@ var PhotoSphereViewer = function(args) {
 
 		long = long_tmp;
 		lat = lat_tmp;
+
+		/**
+		 * Indicates that the position has been modified.
+		 * @callback PhotoSphereViewer~onPositionUpdateed
+		 * @param {object} position - The new position
+		 * @param {number} position.longitude - The longitude in radians
+		 * @param {number} position.latitude - The latitude in radians
+		 **/
+
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
 
 		render();
 	};
@@ -963,6 +982,12 @@ var PhotoSphereViewer = function(args) {
 
 			mouse_x = x;
 			mouse_y = y;
+
+			triggerAction('position-updated', {
+				longitude: long,
+				latitude: lat
+			});
+
 			render();
 		}
 	};
@@ -1024,6 +1049,11 @@ var PhotoSphereViewer = function(args) {
 	var onDeviceOrientation = function(coords) {
 		long = stayBetween(coords.longitude, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 		lat = stayBetween(coords.latitude, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
+
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
 
 		render();
 	};
