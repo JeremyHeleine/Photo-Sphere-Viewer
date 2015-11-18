@@ -28,7 +28,7 @@
  * @class
  * @param {object} args - Settings to apply to the viewer
  * @param {string} args.panorama - Panorama URL or path (absolute or relative)
- * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
+ * @param {HTMLElement|string} args.container - Panorama container (should be a `div` or equivalent), can be a string (the ID of the element to retrieve)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
  * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
@@ -1527,8 +1527,8 @@ var PhotoSphereViewer = function(args) {
 	// Eyes offset in VR mode
 	var eyes_offset = (args.eyes_offset !== undefined) ? parseFloat(args.eyes_offset) : 5;
 
-	// Container
-	var container = args.container;
+	// Container (ID to retrieve?)
+	var container = (typeof args.container == 'string') ? document.getElementById(args.container) : args.container;
 
 	// Size of the viewer
 	var viewer_size, new_viewer_size = {}, real_viewer_size = {};

@@ -47,14 +47,12 @@ function upload() {
 	var reader = new FileReader();
 
 	reader.onload = function() {
-		var div = document.getElementById('your-pano');
-
 		var PSV = new PhotoSphereViewer({
 			// Panorama, given in base 64
 			panorama: reader.result,
 
 			// Container
-			container: div,
+			container: 'your-pano',
 
 			// Deactivate the animation
 			time_anim: false,
