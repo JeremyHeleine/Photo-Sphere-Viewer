@@ -13,16 +13,18 @@ Photo Sphere Viewer uses the [Three.js](http://threejs.org) library, so nothing 
     * `container` (required): the `div` in which the panorama will be displayed.
     * `autoload` (optional, default to `true`): `true` to automatically load the panorama, `false` to load it later (with the `.load()` method).
     * `usexmpdata` (optional, default to `true`): `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary.
+    * `cors_anonymous` (optional, default to `true`): `true` to disable the exchange of user credentials via cookies, `false` otherwise.
     * `pano_size` (optional, default to null) The panorama size, if cropped (unnecessary if XMP data can be read).
     * `default_position` (optional, default to `{}`) Defines the default position, the first point seen by the user (e.g. `{long: Math.PI, lat: Math.PI/2}`).
     * `min_fov` (optional, default to `30`): the minimal field of view, in degrees, between 1 and 179.
     * `max_fov` (optional, default to `90`): the maximal field of view, in degrees, between 1 and 179.
     * `allow_user_interactions` (optional, default to `true`): If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled).
-    * `tilt_up_max` (optional, default to `Math.PI/2`) The maximal tilt up angle, in radians.
-    * `tilt_down_max` (optional, default to `Math.PI/2`) The maximal tilt down angle, in radians.
-    * `min_longitude` (optional, default to 0) The minimal longitude to show.
-    * `max_longitude` (optional, default to 2π) The maximal longitude to show.
-    * `zoom_level` (optional, default to `0`) The default zoom level, between 0 and 100.
+    * `allow_scroll_to_zoom (optional, default to `true`): It set to `false`, the user won't be able to scroll with their mouse to zoom.
+    * `tilt_up_max` (optional, default to `Math.PI/2`): The maximal tilt up angle, in radians.
+    * `tilt_down_max` (optional, default to `Math.PI/2`): The maximal tilt down angle, in radians.
+    * `min_longitude` (optional, default to 0): The minimal longitude to show.
+    * `max_longitude` (optional, default to 2π): The maximal longitude to show.
+    * `zoom_level` (optional, default to `0`): The default zoom level, between 0 and 100.
     * `long_offset` (optional, default to `PI/360`): the longitude to travel per pixel moved by mouse/touch.
     * `lat_offset` (optional, default to `PI/180`): the latitude to travel per pixel moved by mouse/touch.
     * `time_anim` (optional, default to `2000`): the panorama will be automatically animated after `time_anim` milliseconds (indicate `false` to deactivate it).

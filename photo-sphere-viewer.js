@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.4.1
+ * Photo Sphere Viewer v2.5
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -28,10 +28,10 @@
  * @class
  * @param {object} args - Settings to apply to the viewer
  * @param {string} args.panorama - Panorama URL or path (absolute or relative)
- * @param {HTMLElement} args.container - Panorama container (should be a `div` or equivalent)
+ * @param {HTMLElement|string} args.container - Panorama container (should be a `div` or equivalent), can be a string (the ID of the element to retrieve)
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
- * @param {boolean} [args.cors_anonymous=true] - `true` There will be no exchange of user credentials via cookies, client-side SSL certificates.
+ * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
  * @param {object} [args.pano_size=null] - The panorama size, if cropped (unnecessary if XMP data can be read)
  * @param {number} [args.pano_size.full_width=null] - The full panorama width, before crop (the image width if `null`)
  * @param {number} [args.pano_size.full_height=null] - The full panorama height, before crop (the image height if `null`)
@@ -45,6 +45,7 @@
  * @param {number} [args.min_fov=30] - The minimal field of view, in degrees, between 1 and 179
  * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
  * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
+ * @param {boolean} [args.allow_scroll_to_zoom=true] - It set to `false`, the user won't be able to scroll with their mouse to zoom
  * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
@@ -70,6 +71,7 @@
  * @param {number} [args.navbar_style.zoomRangeDisk=7] - Zoom range disk diameter in pixels
  * @param {number} [args.navbar_style.fullscreenRatio=4/3] - Fullscreen icon ratio (width/height)
  * @param {number} [args.navbar_style.fullscreenThickness=2] - Fullscreen icon thickness in pixels
+ * @param {number} [args.eyes_offset=5] - Eyes offset in VR mode
  * @param {string} [args.loading_msg=Loading…] - Loading message
  * @param {string} [args.loading_img=null] - Loading image URL or path (absolute or relative)
  * @param {HTMLElement|string} [args.loading_html=null] - An HTML loader (element to append to the container or string representing the HTML)
@@ -224,6 +226,26 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Returns Google's XMP data.
+	 * @private
+	 * @param {string} file - Binary file
+	 * @return {string} The data
+	 **/
+
+	var getXMPData = function(file) {
+		var a = 0, b = 0;
+		var data = '';
+
+		while ((a = file.indexOf('<x:xmpmeta', b)) != -1 && (b = file.indexOf('</x:xmpmeta>', a)) != -1) {
+			data = file.substring(a, b);
+			if (data.indexOf('GPano:') != -1)
+				return data;
+		}
+
+		return '';
+	};
+
+	/**
 	 * Returns the value of a given attribute in the panorama metadata.
 	 * @private
 	 * @param {string} data - The panorama metadata
@@ -265,13 +287,10 @@ var PhotoSphereViewer = function(args) {
 		xhr.onreadystatechange = function() {
 			if (xhr.readyState == 4 && xhr.status == 200) {
 				// Metadata
-				var binary = xhr.responseText;
-				var a = binary.indexOf('<x:xmpmeta'), b = binary.indexOf('</x:xmpmeta>');
-				var data = binary.substring(a, b);
+				var data = getXMPData(xhr.responseText);
 
-				// No data retrieved
-				if (a == -1 || b == -1 || data.indexOf('GPano:') == -1) {
-					createBuffer(false);
+				if (!data.length) {
+					createBuffer();
 					return;
 				}
 
@@ -285,6 +304,7 @@ var PhotoSphereViewer = function(args) {
 					cropped_y: parseInt(getAttribute(data, 'CroppedAreaTopPixels')),
 				};
 
+				recalculate_coords = true;
 				createBuffer();
 			}
 		};
@@ -310,27 +330,44 @@ var PhotoSphereViewer = function(args) {
 				cropped_width: img.width,
 				cropped_height: img.height,
 				cropped_x: null,
-				cropped_y: null,
+				cropped_y: null
 			};
 
-			for (attr in pano_size) {
-				if (pano_size[attr] == null && default_pano_size[attr] !== undefined)
+			for (var attr in pano_size) {
+				if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
 					pano_size[attr] = default_pano_size[attr];
 			}
 
+			// Do we have to recalculate the coordinates?
+			if (recalculate_coords) {
+				if (pano_size.cropped_width != default_pano_size.cropped_width) {
+					var rx = default_pano_size.cropped_width / pano_size.cropped_width;
+					pano_size.cropped_width = default_pano_size.cropped_width;
+					pano_size.full_width *= rx;
+					pano_size.cropped_x *= rx;
+				}
+
+				if (pano_size.cropped_height != default_pano_size.cropped_height) {
+					var ry = default_pano_size.cropped_height / pano_size.cropped_height;
+					pano_size.cropped_height = default_pano_size.cropped_height;
+					pano_size.full_height *= ry;
+					pano_size.cropped_y *= ry;
+				}
+			}
+
 			// Middle if cropped_x/y is null
-			if (pano_size.cropped_x == null)
+			if (pano_size.cropped_x === null)
 				pano_size.cropped_x = (pano_size.full_width - pano_size.cropped_width) / 2;
 
-			if (pano_size.cropped_y == null)
+			if (pano_size.cropped_y === null)
 				pano_size.cropped_y = (pano_size.full_height - pano_size.cropped_height) / 2;
 
 			// Size limit for mobile compatibility
 			var max_width = 2048;
 			if (isWebGLSupported()) {
-				var canvas = document.createElement('canvas');
-				var ctx = canvas.getContext('webgl');
-				max_width = ctx.getParameter(ctx.MAX_TEXTURE_SIZE);
+				var canvas_tmp = document.createElement('canvas');
+				var ctx_tmp = canvas_tmp.getContext('webgl');
+				max_width = ctx_tmp.getParameter(ctx_tmp.MAX_TEXTURE_SIZE);
 			}
 
 			// Buffer width (not too big)
@@ -360,10 +397,8 @@ var PhotoSphereViewer = function(args) {
 		};
 
 		// CORS when the panorama is not given as a base64 string
-        if (args.cors_anonymous) {
-		    if (!panorama.match(/^data:image\/[a-z]+;base64/))
-			    img.setAttribute('crossOrigin', 'anonymous');
-        }
+		if (cors_anonymous && !panorama.match(/^data:image\/[a-z]+;base64/))
+			img.setAttribute('crossOrigin', 'anonymous');
 
 		img.src = panorama;
 	};
@@ -384,7 +419,7 @@ var PhotoSphereViewer = function(args) {
 			texture.image = img;
 
 			createScene(texture);
-		}
+		};
 
 		loader.load(path, onLoad);
 	};
@@ -449,8 +484,10 @@ var PhotoSphereViewer = function(args) {
 			addEvent(document, 'touchend', onMouseUp);
 			addEvent(document, 'touchmove', onTouchMove);
 
-			addEvent(canvas_container, 'mousewheel', onMouseWheel);
-			addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+			if (scroll_to_zoom) {
+				addEvent(canvas_container, 'mousewheel', onMouseWheel);
+				addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
+			}
 		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
@@ -515,7 +552,7 @@ var PhotoSphereViewer = function(args) {
 
 	var startStereo = function() {
 		stereo_effect = new THREE.StereoEffect(renderer);
-		stereo_effect.eyeSeparation = 5;
+		stereo_effect.eyeSeparation = eyes_offset;
 		stereo_effect.setSize(viewer_size.width, viewer_size.height);
 
 		startDeviceOrientation();
@@ -602,6 +639,11 @@ var PhotoSphereViewer = function(args) {
 		}
 
 		long = getAngleMeasure(long, true);
+
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
 
 		render();
 
@@ -762,6 +804,19 @@ var PhotoSphereViewer = function(args) {
 		long = long_tmp;
 		lat = lat_tmp;
 
+		/**
+		 * Indicates that the position has been modified.
+		 * @callback PhotoSphereViewer~onPositionUpdateed
+		 * @param {object} position - The new position
+		 * @param {number} position.longitude - The longitude in radians
+		 * @param {number} position.latitude - The latitude in radians
+		 **/
+
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
+
 		render();
 	};
 
@@ -895,7 +950,7 @@ var PhotoSphereViewer = function(args) {
 				var d = dist(evt.touches[0].clientX, evt.touches[0].clientY, evt.touches[1].clientX, evt.touches[1].clientY);
 				var diff = d - touchzoom_dist;
 
-				if (diff != 0) {
+				if (diff !== 0) {
 					var direction = diff / Math.abs(diff);
 					zoom(zoom_lvl + direction);
 
@@ -927,6 +982,12 @@ var PhotoSphereViewer = function(args) {
 
 			mouse_x = x;
 			mouse_y = y;
+
+			triggerAction('position-updated', {
+				longitude: long,
+				latitude: lat
+			});
+
 			render();
 		}
 	};
@@ -989,6 +1050,11 @@ var PhotoSphereViewer = function(args) {
 		long = stayBetween(coords.longitude, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 		lat = stayBetween(coords.latitude, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
 
+		triggerAction('position-updated', {
+			longitude: long,
+			latitude: lat
+		});
+
 		render();
 	};
 
@@ -1005,7 +1071,7 @@ var PhotoSphereViewer = function(args) {
 
 		var delta = (evt.detail) ? -evt.detail : evt.wheelDelta;
 
-		if (delta != 0) {
+		if (delta !== 0) {
 			var direction = parseInt(delta / Math.abs(delta));
 			zoom(zoom_lvl + direction);
 		}
@@ -1032,6 +1098,16 @@ var PhotoSphereViewer = function(args) {
 		 **/
 
 		triggerAction('zoom-updated', zoom_lvl);
+	};
+
+	/**
+	 * Returns the current zoom level.
+	 * @public
+	 * @return {integer} The current zoom level (between 0 and 100)
+	 **/
+
+	this.getZoomLevel = function() {
+		return zoom_lvl;
 	};
 
 	/**
@@ -1268,7 +1344,7 @@ var PhotoSphereViewer = function(args) {
 
 	var setNewViewerSize = function(size) {
 		// Checks all the values
-		for (dim in size) {
+		for (var dim in size) {
 			// Only width and height matter
 			if (dim == 'width' || dim == 'height') {
 				// Size extraction
@@ -1334,8 +1410,8 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	// Movement speed
-	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseFloat(args.long_offset) : Math.PI / 360.0;
-	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseFloat(args.lat_offset) : Math.PI / 180.0;
+	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseAngle(args.long_offset) : Math.PI / 360.0;
+	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseAngle(args.lat_offset) : Math.PI / 180.0;
 
 	// Minimum and maximum fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
@@ -1356,7 +1432,7 @@ var PhotoSphereViewer = function(args) {
 		max_long = 2 * Math.PI;
 	}
 
-	else if (max_long == 0)
+	else if (max_long === 0)
 		max_long = 2 * Math.PI;
 
 	var PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE;
@@ -1445,8 +1521,14 @@ var PhotoSphereViewer = function(args) {
 	if (!user_interactions_allowed)
 		display_navbar = false;
 
-	// Container
-	var container = args.container;
+	// Is "scroll to zoom" allowed?
+	var scroll_to_zoom = (args.allow_scroll_to_zoom !== undefined) ? !!args.allow_scroll_to_zoom : true;
+
+	// Eyes offset in VR mode
+	var eyes_offset = (args.eyes_offset !== undefined) ? parseFloat(args.eyes_offset) : 5;
+
+	// Container (ID to retrieve?)
+	var container = (typeof args.container == 'string') ? document.getElementById(args.container) : args.container;
 
 	// Size of the viewer
 	var viewer_size, new_viewer_size = {}, real_viewer_size = {};
@@ -1465,8 +1547,11 @@ var PhotoSphereViewer = function(args) {
 
 	var actions = {};
 
-	// Must we read XMP data?
+	// Do we have to read XMP data?
 	var readxmp = (args.usexmpdata !== undefined) ? !!args.usexmpdata : true;
+
+	// Can we use CORS?
+	var cors_anonymous = (args.cors_anonymous !== undefined) ? !!args.cors_anonymous : true;
 
 	// Cropped size?
 	var pano_size = {
@@ -1479,13 +1564,16 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	if (args.pano_size !== undefined) {
-		for (attr in pano_size) {
+		for (var attr in pano_size) {
 			if (args.pano_size[attr] !== undefined)
 				pano_size[attr] = parseInt(args.pano_size[attr]);
 		}
 
 		readxmp = false;
 	}
+
+	// Will we have to recalculate the coordinates?
+	var recalculate_coords = false;
 
 	// Loading message
 	var loading_msg = (args.loading_msg !== undefined) ? args.loading_msg.toString() : 'Loading…';
@@ -1506,7 +1594,6 @@ var PhotoSphereViewer = function(args) {
 	if (autoload)
 		this.load();
 };
-
 /**
  * Represents the navigation bar.
  * @class
@@ -1580,7 +1667,7 @@ var PSVNavBar = function(psv) {
 
 	this.setStyle = function(new_style) {
 		// Properties to change
-		for (property in new_style) {
+		for (var property in new_style) {
 			// Is this property a property we'll use?
 			if ((property in style) && checkValue(property, new_style[property]))
 				style[property] = new_style[property];
@@ -1779,7 +1866,6 @@ var PSVNavBar = function(psv) {
 	var must_hide_timeout = null;
 	var hidden = false, must_be_hidden = false;
 };
-
 /**
  * Represents a navigation bar button.
  * @class
@@ -2268,6 +2354,30 @@ var PSVNavBarButton = function(psv, type, style) {
     var button;
     create();
 };
+/*
+* Sphoords v0.1
+* http://jeremyheleine.me
+*
+* Copyright (c) 2015 Jérémy Heleine
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
 
 /**
  * Sphoords class allowing to retrieve the current orientation of a device supporting the Orientation API.

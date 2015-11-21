@@ -71,7 +71,7 @@ var PSVNavBar = function(psv) {
 
 	this.setStyle = function(new_style) {
 		// Properties to change
-		for (property in new_style) {
+		for (var property in new_style) {
 			// Is this property a property we'll use?
 			if ((property in style) && checkValue(property, new_style[property]))
 				style[property] = new_style[property];
