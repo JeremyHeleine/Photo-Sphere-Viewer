@@ -51,6 +51,7 @@
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
  * @param {number|string} [args.max_longitude=2π] - The maximal longitude to show
  * @param {number} [args.zoom_level=0] - The default zoom level, between 0 and 100
+ * @param {boolean} [args.smooth_user_moves=true] - If set to `false` user moves have a speed fixed by `long_offset` and `lat_offset`
  * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
  * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
  * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
@@ -879,11 +880,14 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var startMove = function(x, y) {
+		// Store the current position of the mouse
 		mouse_x = x;
 		mouse_y = y;
 
+		// Stop the animation
 		stopAutorotate();
 
+		// Start the movement
 		mousedown = true;
 	};
 
@@ -970,18 +974,29 @@ var PhotoSphereViewer = function(args) {
 
 	var move = function(x, y) {
 		if (mousedown) {
-			long += (x - mouse_x) * PSV_LONG_OFFSET;
+			// Smooth movement
+			if (smooth_user_moves) {
+				long += (x - mouse_x) / viewer_size.height * fov * Math.PI / 180;
+				lat += (y - mouse_y) / viewer_size.height * fov * Math.PI / 180;
+			}
 
+			// No smooth movement
+			else {
+				long += (x - mouse_x) * PSV_LONG_OFFSET;
+				lat += (y - mouse_y) * PSV_LAT_OFFSET;
+			}
+
+			// Save the current coordinates for the next movement
+			mouse_x = x;
+			mouse_y = y;
+
+			// Coordinates treatments
 			if (!whole_circle)
 				long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 
 			long = getAngleMeasure(long, true);
 
-			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
-
-			mouse_x = x;
-			mouse_y = y;
 
 			triggerAction('position-updated', {
 				longitude: long,
@@ -1086,8 +1101,9 @@ var PhotoSphereViewer = function(args) {
 
 	var zoom = function(level) {
 		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
+		fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
-		camera.fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
+		camera.fov = fov;
 		camera.updateProjectionMatrix();
 		render();
 
@@ -1409,6 +1425,9 @@ var PhotoSphereViewer = function(args) {
 		return;
 	}
 
+	// Should the movement be smooth?
+	var smooth_user_moves = (args.smooth_user_moves !== undefined) ? !!args.smooth_user_moves : true;
+
 	// Movement speed
 	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseAngle(args.long_offset) : Math.PI / 360.0;
 	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseAngle(args.lat_offset) : Math.PI / 180.0;
@@ -1467,6 +1486,8 @@ var PhotoSphereViewer = function(args) {
 
 	if (args.zoom_level !== undefined)
 		zoom_lvl = stayBetween(parseInt(Math.round(args.zoom_level)), 0, 100);
+
+	var fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;
