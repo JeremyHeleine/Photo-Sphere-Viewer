@@ -39,6 +39,9 @@
  * @param {number} [args.pano_size.cropped_height=null] - The cropped panorama height (the image height if `null`)
  * @param {number} [args.pano_size.cropped_x=null] - The cropped panorama horizontal offset relative to the full width (middle if `null`)
  * @param {number} [args.pano_size.cropped_y=null] - The cropped panorama vertical offset relative to the full height (middle if `null`)
+ * @param {object} [args.captured_view=null] - The real captured view, compared to the theoritical 360°×180° possible view
+ * @param {number} [args.captured_view.horizontal_fov=360] - The horizontal captured field of view in degrees (default to 360°)
+ * @param {number} [args.captured_view.vertical_fov=180] - The vertical captured field of view in degrees (default to 180°)
  * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
  * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
  * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
@@ -334,25 +337,49 @@ var PhotoSphereViewer = function(args) {
 				cropped_y: null
 			};
 
-			for (var attr in pano_size) {
-				if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
-					pano_size[attr] = default_pano_size[attr];
-			}
+			// Captured view?
+			if (captured_view.horizontal_fov != 360 || captured_view.vertical_fov != 180) {
+				// The indicated view is the cropped panorama
+				pano_size.cropped_width = default_pano_size.cropped_width;
+				pano_size.cropped_height = default_pano_size.cropped_height;
+				pano_size.full_width = default_pano_size.full_width;
+				pano_size.full_height = default_pano_size.full_height;
 
-			// Do we have to recalculate the coordinates?
-			if (recalculate_coords) {
-				if (pano_size.cropped_width != default_pano_size.cropped_width) {
-					var rx = default_pano_size.cropped_width / pano_size.cropped_width;
-					pano_size.cropped_width = default_pano_size.cropped_width;
-					pano_size.full_width *= rx;
-					pano_size.cropped_x *= rx;
+				// Horizontal FOV indicated
+				if (captured_view.horizontal_fov != 360) {
+					var rh = captured_view.horizontal_fov / 360.0;
+					pano_size.full_width = pano_size.cropped_width / rh;
 				}
 
-				if (pano_size.cropped_height != default_pano_size.cropped_height) {
-					var ry = default_pano_size.cropped_height / pano_size.cropped_height;
-					pano_size.cropped_height = default_pano_size.cropped_height;
-					pano_size.full_height *= ry;
-					pano_size.cropped_y *= ry;
+				// Vertical FOV indicated
+				if (captured_view.vertical_fov != 180) {
+					var rv = captured_view.vertical_fov / 180.0;
+					pano_size.full_height = pano_size.cropped_height / rv;
+				}
+			}
+
+			else {
+				// Cropped panorama: dimensions defined by the user
+				for (var attr in pano_size) {
+					if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
+						pano_size[attr] = default_pano_size[attr];
+				}
+
+				// Do we have to recalculate the coordinates?
+				if (recalculate_coords) {
+					if (pano_size.cropped_width != default_pano_size.cropped_width) {
+						var rx = default_pano_size.cropped_width / pano_size.cropped_width;
+						pano_size.cropped_width = default_pano_size.cropped_width;
+						pano_size.full_width *= rx;
+						pano_size.cropped_x *= rx;
+					}
+
+					if (pano_size.cropped_height != default_pano_size.cropped_height) {
+						var ry = default_pano_size.cropped_height / pano_size.cropped_height;
+						pano_size.cropped_height = default_pano_size.cropped_height;
+						pano_size.full_height *= ry;
+						pano_size.cropped_y *= ry;
+					}
 				}
 			}
 
@@ -1584,10 +1611,26 @@ var PhotoSphereViewer = function(args) {
 		cropped_y: null
 	};
 
+	// The user defines the real size of the panorama
 	if (args.pano_size !== undefined) {
 		for (var attr in pano_size) {
 			if (args.pano_size[attr] !== undefined)
 				pano_size[attr] = parseInt(args.pano_size[attr]);
+		}
+
+		readxmp = false;
+	}
+
+	// Captured FOVs
+	var captured_view = {
+		horizontal_fov: 360,
+		vertical_fov: 180
+	};
+
+	if (args.captured_view !== undefined) {
+		for (var attr in captured_view) {
+			if (args.captured_view[attr] !== undefined)
+				captured_view[attr] = parseFloat(args.captured_view[attr]);
 		}
 
 		readxmp = false;
