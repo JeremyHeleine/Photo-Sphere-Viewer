@@ -29,6 +29,14 @@
  * @param {object} args - Settings to apply to the viewer
  * @param {string} args.panorama - Panorama URL or path (absolute or relative)
  * @param {HTMLElement|string} args.container - Panorama container (should be a `div` or equivalent), can be a string (the ID of the element to retrieve)
+ * @param {object} args.overlay - Image to add over the panorama
+ * @param {string} args.overlay.image - Image URL or path
+ * @param {object} [args.overlay.position=null] - Image position (default to the bottom left corner)
+ * @param {string} [args.overlay.position.x=null] - Horizontal image position ('left' or 'right')
+ * @param {string} [args.overlay.position.y=null] - Vertical image position ('top' or 'bottom')
+ * @param {object} [args.overlay.size=null] - Image size (if it needs to be resized)
+ * @param {number|string} [args.overlay.size.width=null] - Image width (in pixels or a percentage, like '20%')
+ * @param {number|string} [args.overlay.size.height=null] - Image height (in pixels or a percentage, like '20%')
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
  * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
@@ -497,6 +505,34 @@ var PhotoSphereViewer = function(args) {
 			navbar.setStyle(navbar_style);
 			navbar.create();
 			root.appendChild(navbar.getBar());
+		}
+
+		// Overlay?
+		if (overlay !== null) {
+			// Add the image
+			var overlay_img = document.createElement('img');
+
+			overlay_img.onload = function() {
+				overlay_img.style.display = 'block';
+
+				// Image position
+				overlay_img.style.position = 'absolute';
+				overlay_img.style[overlay.position.x] = '5px';
+				overlay_img.style[overlay.position.y] = '5px';
+
+				if (overlay.position.y == 'bottom' && display_navbar)
+					overlay_img.style.bottom = (navbar.getBar().offsetHeight + 5) + 'px';
+
+				// Should we resize the image?
+				if (overlay.size !== undefined) {
+					overlay_img.style.width = overlay.size.width;
+					overlay_img.style.height = overlay.size.height;
+				}
+
+				root.appendChild(overlay_img);
+			};
+
+			overlay_img.src = overlay.image;
 		}
 
 		// Adding events
@@ -1647,6 +1683,39 @@ var PhotoSphereViewer = function(args) {
 
 	// Loading HTML
 	var loading_html = (args.loading_html !== undefined) ? args.loading_html : null;
+
+	// Overlay
+	var overlay = null;
+	if (args.overlay !== undefined) {
+		// Image
+		if (args.overlay.image !== undefined) {
+			overlay = {
+				image: args.overlay.image,
+				position: {
+					x: 'left',
+					y: 'bottom'
+				}
+			};
+
+			// Image position
+			if (args.overlay.position !== undefined) {
+				if (args.overlay.position.x !== undefined && (args.overlay.position.x == 'left' || args.overlay.position.x == 'right'))
+					overlay.position.x = args.overlay.position.x;
+
+				if (args.overlay.position.y !== undefined && (args.overlay.position.y == 'top' || args.overlay.position.y == 'bottom'))
+					overlay.position.y = args.overlay.position.y;
+			}
+
+			// Image size
+			if (args.overlay.size !== undefined) {
+				// Default: keep the original size, or resize following the current ratio
+				overlay.size = {
+					width: (args.overlay.size.width !== undefined) ? args.overlay.size.width : 'auto',
+					height: (args.overlay.size.height !== undefined) ? args.overlay.size.height : 'auto'
+				};
+			}
+		}
+	}
 
 	// Function to call once panorama is ready?
 	if (args.onready !== undefined)
