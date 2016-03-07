@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.5
+ * Photo Sphere Viewer v2.6
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -29,6 +29,14 @@
  * @param {object} args - Settings to apply to the viewer
  * @param {string} args.panorama - Panorama URL or path (absolute or relative)
  * @param {HTMLElement|string} args.container - Panorama container (should be a `div` or equivalent), can be a string (the ID of the element to retrieve)
+ * @param {object} args.overlay - Image to add over the panorama
+ * @param {string} args.overlay.image - Image URL or path
+ * @param {object} [args.overlay.position=null] - Image position (default to the bottom left corner)
+ * @param {string} [args.overlay.position.x=null] - Horizontal image position ('left' or 'right')
+ * @param {string} [args.overlay.position.y=null] - Vertical image position ('top' or 'bottom')
+ * @param {object} [args.overlay.size=null] - Image size (if it needs to be resized)
+ * @param {number|string} [args.overlay.size.width=null] - Image width (in pixels or a percentage, like '20%')
+ * @param {number|string} [args.overlay.size.height=null] - Image height (in pixels or a percentage, like '20%')
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
  * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
@@ -39,6 +47,9 @@
  * @param {number} [args.pano_size.cropped_height=null] - The cropped panorama height (the image height if `null`)
  * @param {number} [args.pano_size.cropped_x=null] - The cropped panorama horizontal offset relative to the full width (middle if `null`)
  * @param {number} [args.pano_size.cropped_y=null] - The cropped panorama vertical offset relative to the full height (middle if `null`)
+ * @param {object} [args.captured_view=null] - The real captured view, compared to the theoritical 360°×180° possible view
+ * @param {number} [args.captured_view.horizontal_fov=360] - The horizontal captured field of view in degrees (default to 360°)
+ * @param {number} [args.captured_view.vertical_fov=180] - The vertical captured field of view in degrees (default to 180°)
  * @param {object} [args.default_position] - Defines the default position (the first point seen by the user)
  * @param {number|string} [args.default_position.long=0] - Default longitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
  * @param {number|string} [args.default_position.lat=0] - Default latitude, in radians (or in degrees if indicated, e.g. `'45deg'`)
@@ -51,6 +62,7 @@
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
  * @param {number|string} [args.max_longitude=2π] - The maximal longitude to show
  * @param {number} [args.zoom_level=0] - The default zoom level, between 0 and 100
+ * @param {boolean} [args.smooth_user_moves=true] - If set to `false` user moves have a speed fixed by `long_offset` and `lat_offset`
  * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
  * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
  * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
@@ -333,25 +345,49 @@ var PhotoSphereViewer = function(args) {
 				cropped_y: null
 			};
 
-			for (var attr in pano_size) {
-				if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
-					pano_size[attr] = default_pano_size[attr];
-			}
+			// Captured view?
+			if (captured_view.horizontal_fov != 360 || captured_view.vertical_fov != 180) {
+				// The indicated view is the cropped panorama
+				pano_size.cropped_width = default_pano_size.cropped_width;
+				pano_size.cropped_height = default_pano_size.cropped_height;
+				pano_size.full_width = default_pano_size.full_width;
+				pano_size.full_height = default_pano_size.full_height;
 
-			// Do we have to recalculate the coordinates?
-			if (recalculate_coords) {
-				if (pano_size.cropped_width != default_pano_size.cropped_width) {
-					var rx = default_pano_size.cropped_width / pano_size.cropped_width;
-					pano_size.cropped_width = default_pano_size.cropped_width;
-					pano_size.full_width *= rx;
-					pano_size.cropped_x *= rx;
+				// Horizontal FOV indicated
+				if (captured_view.horizontal_fov != 360) {
+					var rh = captured_view.horizontal_fov / 360.0;
+					pano_size.full_width = pano_size.cropped_width / rh;
 				}
 
-				if (pano_size.cropped_height != default_pano_size.cropped_height) {
-					var ry = default_pano_size.cropped_height / pano_size.cropped_height;
-					pano_size.cropped_height = default_pano_size.cropped_height;
-					pano_size.full_height *= ry;
-					pano_size.cropped_y *= ry;
+				// Vertical FOV indicated
+				if (captured_view.vertical_fov != 180) {
+					var rv = captured_view.vertical_fov / 180.0;
+					pano_size.full_height = pano_size.cropped_height / rv;
+				}
+			}
+
+			else {
+				// Cropped panorama: dimensions defined by the user
+				for (var attr in pano_size) {
+					if (pano_size[attr] === null && default_pano_size[attr] !== undefined)
+						pano_size[attr] = default_pano_size[attr];
+				}
+
+				// Do we have to recalculate the coordinates?
+				if (recalculate_coords) {
+					if (pano_size.cropped_width != default_pano_size.cropped_width) {
+						var rx = default_pano_size.cropped_width / pano_size.cropped_width;
+						pano_size.cropped_width = default_pano_size.cropped_width;
+						pano_size.full_width *= rx;
+						pano_size.cropped_x *= rx;
+					}
+
+					if (pano_size.cropped_height != default_pano_size.cropped_height) {
+						var ry = default_pano_size.cropped_height / pano_size.cropped_height;
+						pano_size.cropped_height = default_pano_size.cropped_height;
+						pano_size.full_height *= ry;
+						pano_size.cropped_y *= ry;
+					}
 				}
 			}
 
@@ -469,6 +505,34 @@ var PhotoSphereViewer = function(args) {
 			navbar.setStyle(navbar_style);
 			navbar.create();
 			root.appendChild(navbar.getBar());
+		}
+
+		// Overlay?
+		if (overlay !== null) {
+			// Add the image
+			var overlay_img = document.createElement('img');
+
+			overlay_img.onload = function() {
+				overlay_img.style.display = 'block';
+
+				// Image position
+				overlay_img.style.position = 'absolute';
+				overlay_img.style[overlay.position.x] = '5px';
+				overlay_img.style[overlay.position.y] = '5px';
+
+				if (overlay.position.y == 'bottom' && display_navbar)
+					overlay_img.style.bottom = (navbar.getBar().offsetHeight + 5) + 'px';
+
+				// Should we resize the image?
+				if (overlay.size !== undefined) {
+					overlay_img.style.width = overlay.size.width;
+					overlay_img.style.height = overlay.size.height;
+				}
+
+				root.appendChild(overlay_img);
+			};
+
+			overlay_img.src = overlay.image;
 		}
 
 		// Adding events
@@ -879,11 +943,14 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var startMove = function(x, y) {
+		// Store the current position of the mouse
 		mouse_x = x;
 		mouse_y = y;
 
+		// Stop the animation
 		stopAutorotate();
 
+		// Start the movement
 		mousedown = true;
 	};
 
@@ -970,18 +1037,29 @@ var PhotoSphereViewer = function(args) {
 
 	var move = function(x, y) {
 		if (mousedown) {
-			long += (x - mouse_x) * PSV_LONG_OFFSET;
+			// Smooth movement
+			if (smooth_user_moves) {
+				long += (x - mouse_x) / viewer_size.height * fov * Math.PI / 180;
+				lat += (y - mouse_y) / viewer_size.height * fov * Math.PI / 180;
+			}
 
+			// No smooth movement
+			else {
+				long += (x - mouse_x) * PSV_LONG_OFFSET;
+				lat += (y - mouse_y) * PSV_LAT_OFFSET;
+			}
+
+			// Save the current coordinates for the next movement
+			mouse_x = x;
+			mouse_y = y;
+
+			// Coordinates treatments
 			if (!whole_circle)
 				long = stayBetween(long, PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 
 			long = getAngleMeasure(long, true);
 
-			lat += (y - mouse_y) * PSV_LAT_OFFSET;
 			lat = stayBetween(lat, PSV_TILT_DOWN_MAX, PSV_TILT_UP_MAX);
-
-			mouse_x = x;
-			mouse_y = y;
 
 			triggerAction('position-updated', {
 				longitude: long,
@@ -1086,8 +1164,9 @@ var PhotoSphereViewer = function(args) {
 
 	var zoom = function(level) {
 		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
+		fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
-		camera.fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
+		camera.fov = fov;
 		camera.updateProjectionMatrix();
 		render();
 
@@ -1409,6 +1488,9 @@ var PhotoSphereViewer = function(args) {
 		return;
 	}
 
+	// Should the movement be smooth?
+	var smooth_user_moves = (args.smooth_user_moves !== undefined) ? !!args.smooth_user_moves : true;
+
 	// Movement speed
 	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseAngle(args.long_offset) : Math.PI / 360.0;
 	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseAngle(args.lat_offset) : Math.PI / 180.0;
@@ -1467,6 +1549,8 @@ var PhotoSphereViewer = function(args) {
 
 	if (args.zoom_level !== undefined)
 		zoom_lvl = stayBetween(parseInt(Math.round(args.zoom_level)), 0, 100);
+
+	var fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
 	// Animation constants
 	var PSV_FRAMES_PER_SECOND = 60;
@@ -1563,10 +1647,26 @@ var PhotoSphereViewer = function(args) {
 		cropped_y: null
 	};
 
+	// The user defines the real size of the panorama
 	if (args.pano_size !== undefined) {
 		for (var attr in pano_size) {
 			if (args.pano_size[attr] !== undefined)
 				pano_size[attr] = parseInt(args.pano_size[attr]);
+		}
+
+		readxmp = false;
+	}
+
+	// Captured FOVs
+	var captured_view = {
+		horizontal_fov: 360,
+		vertical_fov: 180
+	};
+
+	if (args.captured_view !== undefined) {
+		for (var attr in captured_view) {
+			if (args.captured_view[attr] !== undefined)
+				captured_view[attr] = parseFloat(args.captured_view[attr]);
 		}
 
 		readxmp = false;
@@ -1583,6 +1683,39 @@ var PhotoSphereViewer = function(args) {
 
 	// Loading HTML
 	var loading_html = (args.loading_html !== undefined) ? args.loading_html : null;
+
+	// Overlay
+	var overlay = null;
+	if (args.overlay !== undefined) {
+		// Image
+		if (args.overlay.image !== undefined) {
+			overlay = {
+				image: args.overlay.image,
+				position: {
+					x: 'left',
+					y: 'bottom'
+				}
+			};
+
+			// Image position
+			if (args.overlay.position !== undefined) {
+				if (args.overlay.position.x !== undefined && (args.overlay.position.x == 'left' || args.overlay.position.x == 'right'))
+					overlay.position.x = args.overlay.position.x;
+
+				if (args.overlay.position.y !== undefined && (args.overlay.position.y == 'top' || args.overlay.position.y == 'bottom'))
+					overlay.position.y = args.overlay.position.y;
+			}
+
+			// Image size
+			if (args.overlay.size !== undefined) {
+				// Default: keep the original size, or resize following the current ratio
+				overlay.size = {
+					width: (args.overlay.size.width !== undefined) ? args.overlay.size.width : 'auto',
+					height: (args.overlay.size.height !== undefined) ? args.overlay.size.height : 'auto'
+				};
+			}
+		}
+	}
 
 	// Function to call once panorama is ready?
 	if (args.onready !== undefined)

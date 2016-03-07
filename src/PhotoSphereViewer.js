@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.5
+ * Photo Sphere Viewer v2.6
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
