@@ -38,9 +38,17 @@ function loadPredefinedPanorama(evt) {
 		// HTML loader
 		loading_html: loader,
 
-		// Slower movements
-		long_offset: Math.PI / 720,
-		lat_offset: Math.PI / 360
+		// Overlay
+		overlay: {
+			image: 'overlay.png',
+			size: {
+				width: '42px'
+			},
+			position: {
+				x: 'right',
+				y: 'top'
+			}
+		}
 	});
 }
 
