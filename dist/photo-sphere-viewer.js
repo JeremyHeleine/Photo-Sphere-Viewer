@@ -1727,6 +1727,7 @@ var PhotoSphereViewer = function(args) {
 	if (autoload)
 		this.load();
 };
+
 /**
  * Represents the navigation bar.
  * @class
@@ -1999,6 +2000,7 @@ var PSVNavBar = function(psv) {
 	var must_hide_timeout = null;
 	var hidden = false, must_be_hidden = false;
 };
+
 /**
  * Represents a navigation bar button.
  * @class
@@ -2487,6 +2489,7 @@ var PSVNavBarButton = function(psv, type, style) {
     var button;
     create();
 };
+
 /*
 * Sphoords v0.1
 * http://jeremyheleine.me
