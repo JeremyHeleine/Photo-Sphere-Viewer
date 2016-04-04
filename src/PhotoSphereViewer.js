@@ -267,10 +267,13 @@ var PhotoSphereViewer = function(args) {
 
 	var getAttribute = function(data, attr) {
 		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
+
 		if (b == -1) {
 			// XML-Metadata
-			a = data.indexOf('GPano:' + attr) + attr.length + 7, b = data.indexOf('<', a);
+			a = data.indexOf('GPano:' + attr) + attr.length + 7;
+			b = data.indexOf('<', a);
 		}
+
 		return data.substring(a, b);
 	};
 
