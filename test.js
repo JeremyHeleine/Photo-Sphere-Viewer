@@ -16,7 +16,7 @@ function loadPredefinedPanorama(evt) {
 	var div = document.getElementById('container');
 	div.style.height = '30px';
 
-	var PSV = new PhotoSphereViewer({
+	PSV = new PhotoSphereViewer({
 		// Path to the panorama
 		panorama: 'examples/sun.jpg',
 
@@ -36,7 +36,10 @@ function loadPredefinedPanorama(evt) {
 		},
 
 		// HTML loader
-		loading_html: loader
+		loading_html: loader,
+
+		// Disable smooth moves to test faster
+		smooth_user_moves: false
 	});
 }
 
@@ -47,7 +50,7 @@ function upload() {
 	var reader = new FileReader();
 
 	reader.onload = function() {
-		var PSV = new PhotoSphereViewer({
+		PSV = new PhotoSphereViewer({
 			// Panorama, given in base 64
 			panorama: reader.result,
 
@@ -73,3 +76,6 @@ function upload() {
 
 	reader.readAsDataURL(file);
 }
+
+// Yep, an ugly global variable (to make tests with the console)
+var PSV;

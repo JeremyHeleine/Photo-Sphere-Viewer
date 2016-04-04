@@ -904,6 +904,33 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Rotates the view
+	 * @private
+	 * @param {number|string} dlong - The rotation to apply horizontally
+	 * @param {number|string} dlat - The rotation to apply vertically
+	 * @return {void}
+	 **/
+
+	var rotate = function(dlong, dlat) {
+		dlong = parseAngle(dlong);
+		dlat = parseAngle(dlat);
+
+		moveTo(long + dlong, lat + dlat);
+	};
+
+	/**
+	 * Rotates the view
+	 * @public
+	 * @param {number|string} dlong - The rotation to apply horizontally
+	 * @param {number|string} dlat - The rotation to apply vertically
+	 * @return {void}
+	 **/
+
+	this.rotate = function(dlong, dlat) {
+		rotate(dlong, dlat);
+	};
+
+	/**
 	 * The user wants to move.
 	 * @private
 	 * @param {Event} evt - The event
