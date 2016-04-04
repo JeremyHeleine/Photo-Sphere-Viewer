@@ -65,6 +65,8 @@
  * @param {boolean} [args.smooth_user_moves=true] - If set to `false` user moves have a speed fixed by `long_offset` and `lat_offset`
  * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
  * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
+ * @param {number|string} [args.keyboard_long_offset=π/60] - The longitude to travel when the user hits the left/right arrow
+ * @param {number|string} [args.keyboard_lat_offset=π/120] - The latitude to travel when the user hits the up/down arrow
  * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
  * @param {boolean} [args.reverse_anim=true] - `true` if horizontal animation must be reversed when min/max longitude is reached (only if the whole circle is not described)
  * @param {string} [args.anim_speed=2rpm] - Animation speed in radians/degrees/revolutions per second/minute
@@ -956,19 +958,19 @@ var PhotoSphereViewer = function(args) {
 
 		switch (evt.key) {
 			case 'ArrowUp':
-				dlat = Math.PI / 120.0;
+				dlat = PSV_KEYBOARD_LAT_OFFSET;
 				break;
 
 			case 'ArrowRight':
-				dlong = -Math.PI / 60.0;
+				dlong = -PSV_KEYBOARD_LONG_OFFSET;
 				break;
 
 			case 'ArrowDown':
-				dlat = -Math.PI / 120.0;
+				dlat = -PSV_KEYBOARD_LAT_OFFSET;
 				break;
 
 			case 'ArrowLeft':
-				dlong = Math.PI / 60.0;
+				dlong = PSV_KEYBOARD_LONG_OFFSET;
 				break;
 		}
 
@@ -1573,6 +1575,9 @@ var PhotoSphereViewer = function(args) {
 	// Movement speed
 	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseAngle(args.long_offset) : Math.PI / 360.0;
 	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseAngle(args.lat_offset) : Math.PI / 180.0;
+
+	var PSV_KEYBOARD_LONG_OFFSET = (args.keyboard_long_offset !== undefined) ? parseAngle(args.keyboard_long_offset) : Math.PI / 60.0;
+	var PSV_KEYBOARD_LAT_OFFSET = (args.keyboard_lat_offset !== undefined) ? parseAngle(args.keyboard_lat_offset) : Math.PI / 120.0;
 
 	// Minimum and maximum fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
