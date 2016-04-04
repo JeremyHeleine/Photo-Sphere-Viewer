@@ -559,6 +559,8 @@ var PhotoSphereViewer = function(args) {
 				addEvent(canvas_container, 'mousewheel', onMouseWheel);
 				addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
 			}
+
+			self.addAction('fullscreen-mode', toggleArrowKeys);
 		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
@@ -927,6 +929,49 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	this.rotate = function(dlong, dlat) {
+		rotate(dlong, dlat);
+	};
+
+	/**
+	 * Attaches or detaches the keyboard events
+	 * @private
+	 * @param {boolean} attach - `true` to attach the event, `false` to detach it
+	 * @return {void}
+	 **/
+
+	var toggleArrowKeys = function(attach) {
+		var action = (attach) ? window.addEventListener : window.removeEventListener;
+		action('keydown', keyDown);
+	};
+
+	/**
+	 * Rotates the view through keyboard arrows
+	 * @private
+	 * @param {KeyboardEvent} evt - The event
+	 * @return {void}
+	 **/
+
+	var keyDown = function(evt) {
+		var dlong = 0, dlat = 0;
+
+		switch (evt.key) {
+			case 'ArrowUp':
+				dlat = Math.PI / 120.0;
+				break;
+
+			case 'ArrowRight':
+				dlong = -Math.PI / 60.0;
+				break;
+
+			case 'ArrowDown':
+				dlat = -Math.PI / 120.0;
+				break;
+
+			case 'ArrowLeft':
+				dlong = Math.PI / 60.0;
+				break;
+		}
+
 		rotate(dlong, dlat);
 	};
 
@@ -1752,6 +1797,7 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	// Function to call once panorama is ready?
+	var self = this;
 	if (args.onready !== undefined)
 		this.addAction('ready', args.onready);
 
