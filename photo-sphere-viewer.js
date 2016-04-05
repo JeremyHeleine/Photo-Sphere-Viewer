@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.6
+ * Photo Sphere Viewer v2.7
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -65,6 +65,8 @@
  * @param {boolean} [args.smooth_user_moves=true] - If set to `false` user moves have a speed fixed by `long_offset` and `lat_offset`
  * @param {number} [args.long_offset=π/360] - The longitude to travel per pixel moved by mouse/touch
  * @param {number} [args.lat_offset=π/180] - The latitude to travel per pixel moved by mouse/touch
+ * @param {number|string} [args.keyboard_long_offset=π/60] - The longitude to travel when the user hits the left/right arrow
+ * @param {number|string} [args.keyboard_lat_offset=π/120] - The latitude to travel when the user hits the up/down arrow
  * @param {integer} [args.time_anim=2000] - Delay before automatically animating the panorama in milliseconds, `false` to not animate
  * @param {boolean} [args.reverse_anim=true] - `true` if horizontal animation must be reversed when min/max longitude is reached (only if the whole circle is not described)
  * @param {string} [args.anim_speed=2rpm] - Animation speed in radians/degrees/revolutions per second/minute
@@ -267,6 +269,13 @@ var PhotoSphereViewer = function(args) {
 
 	var getAttribute = function(data, attr) {
 		var a = data.indexOf('GPano:' + attr) + attr.length + 8, b = data.indexOf('"', a);
+
+		if (b == -1) {
+			// XML-Metadata
+			a = data.indexOf('GPano:' + attr) + attr.length + 7;
+			b = data.indexOf('<', a);
+		}
+
 		return data.substring(a, b);
 	};
 
@@ -552,6 +561,8 @@ var PhotoSphereViewer = function(args) {
 				addEvent(canvas_container, 'mousewheel', onMouseWheel);
 				addEvent(canvas_container, 'DOMMouseScroll', onMouseWheel);
 			}
+
+			self.addAction('fullscreen-mode', toggleArrowKeys);
 		}
 
 		addEvent(document, 'fullscreenchange', fullscreenToggled);
@@ -894,6 +905,76 @@ var PhotoSphereViewer = function(args) {
 
 	this.moveTo = function(longitude, latitude) {
 		moveTo(longitude, latitude);
+	};
+
+	/**
+	 * Rotates the view
+	 * @private
+	 * @param {number|string} dlong - The rotation to apply horizontally
+	 * @param {number|string} dlat - The rotation to apply vertically
+	 * @return {void}
+	 **/
+
+	var rotate = function(dlong, dlat) {
+		dlong = parseAngle(dlong);
+		dlat = parseAngle(dlat);
+
+		moveTo(long + dlong, lat + dlat);
+	};
+
+	/**
+	 * Rotates the view
+	 * @public
+	 * @param {number|string} dlong - The rotation to apply horizontally
+	 * @param {number|string} dlat - The rotation to apply vertically
+	 * @return {void}
+	 **/
+
+	this.rotate = function(dlong, dlat) {
+		rotate(dlong, dlat);
+	};
+
+	/**
+	 * Attaches or detaches the keyboard events
+	 * @private
+	 * @param {boolean} attach - `true` to attach the event, `false` to detach it
+	 * @return {void}
+	 **/
+
+	var toggleArrowKeys = function(attach) {
+		var action = (attach) ? window.addEventListener : window.removeEventListener;
+		action('keydown', keyDown);
+	};
+
+	/**
+	 * Rotates the view through keyboard arrows
+	 * @private
+	 * @param {KeyboardEvent} evt - The event
+	 * @return {void}
+	 **/
+
+	var keyDown = function(evt) {
+		var dlong = 0, dlat = 0;
+
+		switch (evt.key) {
+			case 'ArrowUp':
+				dlat = PSV_KEYBOARD_LAT_OFFSET;
+				break;
+
+			case 'ArrowRight':
+				dlong = -PSV_KEYBOARD_LONG_OFFSET;
+				break;
+
+			case 'ArrowDown':
+				dlat = -PSV_KEYBOARD_LAT_OFFSET;
+				break;
+
+			case 'ArrowLeft':
+				dlong = PSV_KEYBOARD_LONG_OFFSET;
+				break;
+		}
+
+		rotate(dlong, dlat);
 	};
 
 	/**
@@ -1495,6 +1576,9 @@ var PhotoSphereViewer = function(args) {
 	var PSV_LONG_OFFSET = (args.long_offset !== undefined) ? parseAngle(args.long_offset) : Math.PI / 360.0;
 	var PSV_LAT_OFFSET = (args.lat_offset !== undefined) ? parseAngle(args.lat_offset) : Math.PI / 180.0;
 
+	var PSV_KEYBOARD_LONG_OFFSET = (args.keyboard_long_offset !== undefined) ? parseAngle(args.keyboard_long_offset) : Math.PI / 60.0;
+	var PSV_KEYBOARD_LAT_OFFSET = (args.keyboard_lat_offset !== undefined) ? parseAngle(args.keyboard_lat_offset) : Math.PI / 120.0;
+
 	// Minimum and maximum fields of view in degrees
 	var PSV_FOV_MIN = (args.min_fov !== undefined) ? stayBetween(parseFloat(args.min_fov), 1, 179) : 30;
 	var PSV_FOV_MAX = (args.max_fov !== undefined) ? stayBetween(parseFloat(args.max_fov), 1, 179) : 90;
@@ -1718,6 +1802,7 @@ var PhotoSphereViewer = function(args) {
 	}
 
 	// Function to call once panorama is ready?
+	var self = this;
 	if (args.onready !== undefined)
 		this.addAction('ready', args.onready);
 
