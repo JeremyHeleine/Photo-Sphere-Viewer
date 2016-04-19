@@ -1,8 +1,8 @@
 /*
-* Sphoords v0.1
+* Sphoords v0.1.1
 * http://jeremyheleine.me
 *
-* Copyright (c) 2015 Jérémy Heleine
+* Copyright (c) 2015,2016 Jérémy Heleine
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -178,6 +178,18 @@ var Sphoords = function() {
 					}
 				}
 
+				//fix to work on iOS (tested on Safari and Chrome)
+				if( engine === 'WebKit' && !!window.orientation ){
+					if( phi < 0 ){
+						phi = (phi + 180) * -1;
+					}
+					if( theta >= 180 ){
+						theta = theta - 180;
+					} else {
+						theta = theta + 180;
+					}
+				}
+
 				break;
 
 			// Landscape mode (inversed)
@@ -199,6 +211,18 @@ var Sphoords = function() {
 						default:
 							phi = -phi;
 							break;
+					}
+				}
+
+				//fix to work on iOS (tested on Safari and Chrome)
+				if( engine === 'WebKit' && !!window.orientation ){
+					if( phi < 0 ){
+						phi = (phi + 180) * -1;
+					}
+					if( theta >= 180 ){
+						theta = theta - 180;
+					} else {
+						theta = theta + 180;
 					}
 				}
 
@@ -331,6 +355,22 @@ Sphoords.getScreenOrientation = function() {
 
 	else if (!!screen.msOrientation)
 		screen_orientation = screen.msOrientation;
+
+	else if (!!window.orientation || window.orientation === 0)
+		switch (window.orientation) {
+			case 0:
+				screen_orientation = 'portrait-primary';
+				break;
+			case 180:
+				screen_orientation = 'portrait-secondary';
+				break;
+			case -90:
+				screen_orientation = 'landscape-primary';
+				break;
+			case 90:
+				screen_orientation = 'landscape-secondary';
+				break;
+		}
 
 	// Are the specs respected?
 	return (screen_orientation !== null && (typeof screen_orientation == 'object')) ? screen_orientation.type : screen_orientation;
