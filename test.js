@@ -43,6 +43,9 @@ function loadPredefinedPanorama(evt) {
 
 		onZoomUpdated: function(newZoom) {
 			console.log('onZoomUpdated', newZoom);
+		},
+		onFullscreenToggled: function(enabled) {
+			console.log('onFullscreenToggled', enabled);
 		}
 	});
 }

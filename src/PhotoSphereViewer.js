@@ -1810,6 +1810,10 @@ var PhotoSphereViewer = function(args) {
 	if (args.onZoomUpdated !== undefined)
 		this.addAction('zoom-updated', args.onZoomUpdated);
 
+	// Function to call when toggling the fullscreen mode
+	if (args.onFullscreenToggled !== undefined)
+		this.addAction('fullscreen-mode', args.onFullscreenToggled);
+
 	// Go?
 	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
 
