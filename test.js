@@ -39,7 +39,11 @@ function loadPredefinedPanorama(evt) {
 		loading_html: loader,
 
 		// Disable smooth moves to test faster
-		smooth_user_moves: false
+		smooth_user_moves: false,
+
+		onZoomUpdated: function(newZoom) {
+			console.log('onZoomUpdated', newZoom);
+		}
 	});
 }
 

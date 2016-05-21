@@ -1806,6 +1806,10 @@ var PhotoSphereViewer = function(args) {
 	if (args.onready !== undefined)
 		this.addAction('ready', args.onready);
 
+	// Function to call when zoom changes
+	if (args.onZoomUpdated !== undefined)
+		this.addAction('zoom-updated', args.onZoomUpdated);
+
 	// Go?
 	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
 
