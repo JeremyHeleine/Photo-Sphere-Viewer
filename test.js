@@ -46,6 +46,9 @@ function loadPredefinedPanorama(evt) {
 		},
 		onFullscreenToggled: function(enabled) {
 			console.log('onFullscreenToggled', enabled);
+		},
+		onPositionUpdated: function(position) {
+			console.log('onPositionUpdated', position);
 		}
 	});
 }

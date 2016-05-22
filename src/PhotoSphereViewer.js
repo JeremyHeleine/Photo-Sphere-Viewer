@@ -1814,6 +1814,11 @@ var PhotoSphereViewer = function(args) {
 	if (args.onFullscreenToggled !== undefined)
 		this.addAction('fullscreen-mode', args.onFullscreenToggled);
 
+	// Function to call when position changes
+	if (args.onPositionUpdated !== undefined)
+		this.addAction('position-updated', args.onPositionUpdated);
+
+
 	// Go?
 	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
 
