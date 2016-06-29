@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.7
+ * Photo Sphere Viewer v2.7.1
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -947,6 +947,39 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Tries to standardize the code sent by a keyboard event
+	 * @private
+	 * @param {KeyboardEvent} evt - The event
+	 * @return {string} The code
+	 **/
+
+	var retrieveKey = function(evt) {
+		// The Holy Grail
+		if (evt.key) {
+			var key = (/^Arrow/.test(evt.key)) ? evt.key : 'Arrow' + evt.key;
+			return key;
+		}
+
+		// Deprecated but still used
+		if (evt.keyCode || evt.which) {
+			var key_code = (evt.keyCode) ? evt.keyCode : evt.which;
+
+			var keycodes_map = {
+				38: 'ArrowUp',
+				39: 'ArrowRight',
+				40: 'ArrowDown',
+				37: 'ArrowLeft'
+			};
+
+			if (keycodes_map[key_code] !== undefined)
+				return keycodes_map[key_code];
+		}
+
+		// :/
+		return '';
+	};
+
+	/**
 	 * Rotates the view through keyboard arrows
 	 * @private
 	 * @param {KeyboardEvent} evt - The event
@@ -955,8 +988,9 @@ var PhotoSphereViewer = function(args) {
 
 	var keyDown = function(evt) {
 		var dlong = 0, dlat = 0;
+		console.log('test');
 
-		switch (evt.key) {
+		switch (retrieveKey(evt)) {
 			case 'ArrowUp':
 				dlat = PSV_KEYBOARD_LAT_OFFSET;
 				break;
@@ -2573,10 +2607,10 @@ var PSVNavBarButton = function(psv, type, style) {
     create();
 };
 /*
-* Sphoords v0.1
+* Sphoords v0.1.1
 * http://jeremyheleine.me
 *
-* Copyright (c) 2015 Jérémy Heleine
+* Copyright (c) 2015,2016 Jérémy Heleine
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -2752,6 +2786,18 @@ var Sphoords = function() {
 					}
 				}
 
+				//fix to work on iOS (tested on Safari and Chrome)
+				if( engine === 'WebKit' && !!window.orientation ){
+					if( phi < 0 ){
+						phi = (phi + 180) * -1;
+					}
+					if( theta >= 180 ){
+						theta = theta - 180;
+					} else {
+						theta = theta + 180;
+					}
+				}
+
 				break;
 
 			// Landscape mode (inversed)
@@ -2773,6 +2819,18 @@ var Sphoords = function() {
 						default:
 							phi = -phi;
 							break;
+					}
+				}
+
+				//fix to work on iOS (tested on Safari and Chrome)
+				if( engine === 'WebKit' && !!window.orientation ){
+					if( phi < 0 ){
+						phi = (phi + 180) * -1;
+					}
+					if( theta >= 180 ){
+						theta = theta - 180;
+					} else {
+						theta = theta + 180;
 					}
 				}
 
@@ -2905,6 +2963,22 @@ Sphoords.getScreenOrientation = function() {
 
 	else if (!!screen.msOrientation)
 		screen_orientation = screen.msOrientation;
+
+	else if (!!window.orientation || window.orientation === 0)
+		switch (window.orientation) {
+			case 0:
+				screen_orientation = 'portrait-primary';
+				break;
+			case 180:
+				screen_orientation = 'portrait-secondary';
+				break;
+			case -90:
+				screen_orientation = 'landscape-primary';
+				break;
+			case 90:
+				screen_orientation = 'landscape-secondary';
+				break;
+		}
 
 	// Are the specs respected?
 	return (screen_orientation !== null && (typeof screen_orientation == 'object')) ? screen_orientation.type : screen_orientation;
