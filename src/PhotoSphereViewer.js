@@ -947,6 +947,39 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Tries to standardize the code sent by a keyboard event
+	 * @private
+	 * @param {KeyboardEvent} evt - The event
+	 * @return {string} The code
+	 **/
+
+	var retrieveKey = function(evt) {
+		// The Holy Grail
+		if (evt.key) {
+			var key = (/^Arrow/.test(evt.key)) ? evt.key : 'Arrow' + evt.key;
+			return key;
+		}
+
+		// Deprecated but still used
+		if (evt.keyCode || evt.which) {
+			var key_code = (evt.keyCode) ? evt.keyCode : evt.which;
+
+			var keycodes_map = {
+				38: 'ArrowUp',
+				39: 'ArrowRight',
+				40: 'ArrowDown',
+				37: 'ArrowLeft'
+			};
+
+			if (keycodes_map[key_code] !== undefined)
+				return keycodes_map[key_code];
+		}
+
+		// :/
+		return '';
+	};
+
+	/**
 	 * Rotates the view through keyboard arrows
 	 * @private
 	 * @param {KeyboardEvent} evt - The event
@@ -955,8 +988,9 @@ var PhotoSphereViewer = function(args) {
 
 	var keyDown = function(evt) {
 		var dlong = 0, dlat = 0;
+		console.log('test');
 
-		switch (evt.key) {
+		switch (retrieveKey(evt)) {
 			case 'ArrowUp':
 				dlat = PSV_KEYBOARD_LAT_OFFSET;
 				break;
