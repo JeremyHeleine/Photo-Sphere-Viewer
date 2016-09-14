@@ -1361,12 +1361,22 @@ var PhotoSphereViewer = function(args) {
 
 			container.style.width = '100%';
 			container.style.height = '100%';
+			
+			container.style.top = '0';          // fix-2
+			container.style.left = '0';         // fix-2
+			container.style.margin = '0';       // fix-2
+
 			fitToContainer();
 		}
 
 		else if (!!container.webkitRequestFullscreen || !!container.msRequestFullscreen) {
 			container.style.width = real_viewer_size.width;
 			container.style.height = real_viewer_size.height;
+			
+			container.style.top = '';          // fix-2
+			container.style.left = '';         // fix-2
+			container.style.margin = '';       // fix-2
+
 			fitToContainer();
 		}
 
