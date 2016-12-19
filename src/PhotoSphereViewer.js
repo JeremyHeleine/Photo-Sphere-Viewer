@@ -37,6 +37,8 @@
  * @param {object} [args.overlay.size=null] - Image size (if it needs to be resized)
  * @param {number|string} [args.overlay.size.width=null] - Image width (in pixels or a percentage, like '20%')
  * @param {number|string} [args.overlay.size.height=null] - Image height (in pixels or a percentage, like '20%')
+ * @param {integer} [args.segments=100] - Number of segments on the sphere
+ * @param {integer} [args.rings=100] - Number of rings on the sphere
  * @param {boolean} [args.autoload=true] - `true` to automatically load the panorama, `false` to load it later (with the {@link PhotoSphereViewer#load|`.load`} method)
  * @param {boolean} [args.usexmpdata=true] - `true` if Photo Sphere Viewer must read XMP data, `false` if it is not necessary
  * @param {boolean} [args.cors_anonymous=true] - `true` to disable the exchange of user credentials via cookies, `false` otherwise
@@ -497,7 +499,7 @@ var PhotoSphereViewer = function(args) {
 		scene.add(camera);
 
 		// Sphere
-		var geometry = new THREE.SphereGeometry(200, 32, 32);
+		var geometry = new THREE.SphereGeometry(200, rings, segments);
 		var material = new THREE.MeshBasicMaterial({map: texture, overdraw: true});
 		var mesh = new THREE.Mesh(geometry, material);
 		mesh.scale.x = -1;
@@ -988,7 +990,6 @@ var PhotoSphereViewer = function(args) {
 
 	var keyDown = function(evt) {
 		var dlong = 0, dlat = 0;
-		console.log('test');
 
 		switch (retrieveKey(evt)) {
 			case 'ArrowUp':
@@ -1661,6 +1662,10 @@ var PhotoSphereViewer = function(args) {
 		if (args.default_position.long !== undefined)
 			long = stayBetween(parseAngle(args.default_position.long), PSV_MIN_LONGITUDE, PSV_MAX_LONGITUDE);
 	}
+
+	// Sphere segments and rings
+	var segments = (args.segments !== undefined) ? parseInt(args.segments) : 100;
+	var rings = (args.rings !== undefined) ? parseInt(args.rings) : 100;
 
 	// Default zoom level
 	var zoom_lvl = 0;
