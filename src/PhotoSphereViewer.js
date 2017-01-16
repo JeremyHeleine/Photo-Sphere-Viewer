@@ -1845,6 +1845,19 @@ var PhotoSphereViewer = function(args) {
 	if (args.onready !== undefined)
 		this.addAction('ready', args.onready);
 
+	// Function to call when zoom changes
+	if (args.onZoomUpdated !== undefined)
+		this.addAction('zoom-updated', args.onZoomUpdated);
+
+	// Function to call when toggling the fullscreen mode
+	if (args.onFullscreenToggled !== undefined)
+		this.addAction('fullscreen-mode', args.onFullscreenToggled);
+
+	// Function to call when position changes
+	if (args.onPositionUpdated !== undefined)
+		this.addAction('position-updated', args.onPositionUpdated);
+
+
 	// Go?
 	var autoload = (args.autoload !== undefined) ? !!args.autoload : true;
 
