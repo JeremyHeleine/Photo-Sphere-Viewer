@@ -1273,6 +1273,17 @@ var PhotoSphereViewer = function(args) {
 	};
 
 	/**
+	 * Use a mousewheel event.
+	 * @public
+	 * @param {Event} evt - The event
+	 * @return {void}
+	 **/
+
+	this.mouseWheel = function(evt) {
+		onMouseWheel(evt);
+	};
+
+	/**
 	 * Sets the new zoom level.
 	 * @private
 	 * @param {integer} level - New zoom level

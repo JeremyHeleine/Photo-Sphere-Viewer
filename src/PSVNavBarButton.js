@@ -128,6 +128,8 @@ var PSVNavBarButton = function(psv, type, style) {
                 addEvent(document, 'touchmove', changeZoomByTouch);
                 addEvent(document, 'mouseup', stopZoomChange);
                 addEvent(document, 'touchend', stopZoomChange);
+				addEvent(zoom_range_bg, 'mousewheel', changeZoomOnMouseWheel);
+				addEvent(zoom_range_bg, 'DOMMouseScroll', changeZoomOnMouseWheel);
                 zoom_range.appendChild(zoom_value);
 
         		// Zoom "+"
@@ -477,6 +479,17 @@ var PSVNavBarButton = function(psv, type, style) {
             psv.zoom(zoom_level);
         }
     };
+
+	/**
+	 * Change zoom by scrolling.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
+	 **/
+
+	var changeZoomOnMouseWheel = function(evt) {
+		psv.mouseWheel(evt);
+	};
 
     // Some useful attributes
     var zoom_range_bg, zoom_range, zoom_value;
