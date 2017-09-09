@@ -59,6 +59,7 @@
  * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
  * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
  * @param {boolean} [args.allow_scroll_to_zoom=true] - It set to `false`, the user won't be able to scroll with their mouse to zoom
+ * @param {number} [args.zoom_speed=1] - Indicate a number greater than 1 to increase the zoom speed
  * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
@@ -1135,7 +1136,7 @@ var PhotoSphereViewer = function(args) {
 
 				if (diff !== 0) {
 					var direction = diff / Math.abs(diff);
-					zoom(zoom_lvl + direction);
+					zoom(zoom_lvl + direction * zoom_speed);
 
 					touchzoom_dist = d;
 				}
@@ -1267,7 +1268,7 @@ var PhotoSphereViewer = function(args) {
 
 		if (delta !== 0) {
 			var direction = parseInt(delta / Math.abs(delta));
-			zoom(zoom_lvl + direction);
+			zoom(zoom_lvl + direction * zoom_speed);
 		}
 	};
 
@@ -1730,6 +1731,9 @@ var PhotoSphereViewer = function(args) {
 
 	// Is "scroll to zoom" allowed?
 	var scroll_to_zoom = (args.allow_scroll_to_zoom !== undefined) ? !!args.allow_scroll_to_zoom : true;
+
+	// User's zoom speed
+	var zoom_speed = (args.zoom_speed !== undefined) ? parseFloat(args.zoom_speed) : 1.0;
 
 	// Eyes offset in VR mode
 	var eyes_offset = (args.eyes_offset !== undefined) ? parseFloat(args.eyes_offset) : 5;
