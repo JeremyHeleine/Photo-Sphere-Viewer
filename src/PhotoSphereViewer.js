@@ -1279,7 +1279,7 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var zoom = function(level) {
-		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
+		zoom_lvl = stayBetween(level, 0, 100);
 		fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
 		camera.fov = fov;
