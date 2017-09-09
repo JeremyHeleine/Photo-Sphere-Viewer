@@ -1325,7 +1325,7 @@ var PhotoSphereViewer = function(args) {
 
 	this.zoomIn = function() {
 		if (zoom_lvl < 100)
-			zoom(zoom_lvl + 1);
+			zoom(zoom_lvl + zoom_speed);
 	};
 
 	/**
@@ -1336,7 +1336,7 @@ var PhotoSphereViewer = function(args) {
 
 	this.zoomOut = function() {
 		if (zoom_lvl > 0)
-			zoom(zoom_lvl - 1);
+			zoom(zoom_lvl - zoom_speed);
 	};
 
 	/**
