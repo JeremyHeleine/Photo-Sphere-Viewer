@@ -1,5 +1,5 @@
 /*
- * Photo Sphere Viewer v2.8
+ * Photo Sphere Viewer v2.9
  * http://jeremyheleine.me/photo-sphere-viewer
  *
  * Copyright (c) 2014,2015 Jérémy Heleine
@@ -59,6 +59,7 @@
  * @param {number} [args.max_fov=90] - The maximal field of view, in degrees, between 1 and 179
  * @param {boolean} [args.allow_user_interactions=true] - If set to `false`, the user won't be able to interact with the panorama (navigation bar is then disabled)
  * @param {boolean} [args.allow_scroll_to_zoom=true] - It set to `false`, the user won't be able to scroll with their mouse to zoom
+ * @param {number} [args.zoom_speed=1] - Indicate a number greater than 1 to increase the zoom speed
  * @param {number|string} [args.tilt_up_max=π/2] - The maximal tilt up angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.tilt_down_max=π/2] - The maximal tilt down angle, in radians (or in degrees if indicated, e.g. `'30deg'`)
  * @param {number|string} [args.min_longitude=0] - The minimal longitude to show
@@ -1135,7 +1136,7 @@ var PhotoSphereViewer = function(args) {
 
 				if (diff !== 0) {
 					var direction = diff / Math.abs(diff);
-					zoom(zoom_lvl + direction);
+					zoom(zoom_lvl + direction * zoom_speed);
 
 					touchzoom_dist = d;
 				}
@@ -1267,8 +1268,19 @@ var PhotoSphereViewer = function(args) {
 
 		if (delta !== 0) {
 			var direction = parseInt(delta / Math.abs(delta));
-			zoom(zoom_lvl + direction);
+			zoom(zoom_lvl + direction * zoom_speed);
 		}
+	};
+
+	/**
+	 * Use a mousewheel event.
+	 * @public
+	 * @param {Event} evt - The event
+	 * @return {void}
+	 **/
+
+	this.mouseWheel = function(evt) {
+		onMouseWheel(evt);
 	};
 
 	/**
@@ -1279,7 +1291,7 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var zoom = function(level) {
-		zoom_lvl = stayBetween(parseInt(Math.round(level)), 0, 100);
+		zoom_lvl = stayBetween(level, 0, 100);
 		fov = PSV_FOV_MAX + (zoom_lvl / 100) * (PSV_FOV_MIN - PSV_FOV_MAX);
 
 		camera.fov = fov;
@@ -1324,7 +1336,7 @@ var PhotoSphereViewer = function(args) {
 
 	this.zoomIn = function() {
 		if (zoom_lvl < 100)
-			zoom(zoom_lvl + 1);
+			zoom(zoom_lvl + zoom_speed);
 	};
 
 	/**
@@ -1335,7 +1347,7 @@ var PhotoSphereViewer = function(args) {
 
 	this.zoomOut = function() {
 		if (zoom_lvl > 0)
-			zoom(zoom_lvl - 1);
+			zoom(zoom_lvl - zoom_speed);
 	};
 
 	/**
@@ -1730,6 +1742,9 @@ var PhotoSphereViewer = function(args) {
 
 	// Is "scroll to zoom" allowed?
 	var scroll_to_zoom = (args.allow_scroll_to_zoom !== undefined) ? !!args.allow_scroll_to_zoom : true;
+
+	// User's zoom speed
+	var zoom_speed = (args.zoom_speed !== undefined) ? parseFloat(args.zoom_speed) : 1.0;
 
 	// Eyes offset in VR mode
 	var eyes_offset = (args.eyes_offset !== undefined) ? parseFloat(args.eyes_offset) : 5;
@@ -2253,6 +2268,8 @@ var PSVNavBarButton = function(psv, type, style) {
                 addEvent(document, 'touchmove', changeZoomByTouch);
                 addEvent(document, 'mouseup', stopZoomChange);
                 addEvent(document, 'touchend', stopZoomChange);
+				addEvent(zoom_range_bg, 'mousewheel', changeZoomOnMouseWheel);
+				addEvent(zoom_range_bg, 'DOMMouseScroll', changeZoomOnMouseWheel);
                 zoom_range.appendChild(zoom_value);
 
         		// Zoom "+"
@@ -2602,6 +2619,17 @@ var PSVNavBarButton = function(psv, type, style) {
             psv.zoom(zoom_level);
         }
     };
+
+	/**
+	 * Change zoom by scrolling.
+	 * @private
+	 * @param {Event} evt - The event
+	 * @return {void}
+	 **/
+
+	var changeZoomOnMouseWheel = function(evt) {
+		psv.mouseWheel(evt);
+	};
 
     // Some useful attributes
     var zoom_range_bg, zoom_range, zoom_value;
