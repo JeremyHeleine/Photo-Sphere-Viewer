@@ -1550,6 +1550,15 @@ var PhotoSphereViewer = function(args) {
 	 **/
 
 	var setNewViewerSize = function(size) {
+		// Allowed units
+		var units = [
+			'em', 'ex', 'cap', 'rem', 'lh',
+			'%', 'vw', 'vh', 'vmin', 'vmax',
+			'px', 'mm', 'cm', 'in', 'pt'
+		];
+
+		var units_str = ' '+(units.join(' '))+' ';
+
 		// Checks all the values
 		for (var dim in size) {
 			// Only width and height matter
@@ -1561,14 +1570,14 @@ var PhotoSphereViewer = function(args) {
 				var size_unit = size_str.replace(/^[0-9]+(?:\.[0-9]*)?(.*)$/, '$1').trim();
 
 				// Only percentages and pixels are allowed
-				if (size_unit != '%')
+				if (units_str.indexOf(' '+size_unit+' ') == -1)
 					size_unit = 'px';
 
 				// We're good
 				new_viewer_size[dim] = {
-						css: size_value + size_unit,
-						unit: size_unit
-					};
+					css: size_value + size_unit,
+					unit: size_unit
+				};
 			}
 		}
 	};
@@ -1756,6 +1765,7 @@ var PhotoSphereViewer = function(args) {
 	var viewer_size, new_viewer_size = {}, real_viewer_size = {};
 	if (args.size !== undefined)
 		setNewViewerSize(args.size);
+	console.log(new_viewer_size)
 
 	// Some useful attributes
 	var panorama = args.panorama;
