@@ -17,13 +17,13 @@ Parameters can be added to the switch-case in `psv-standalone.js`.
 The parameters are passed as URL parameters. Here it is partly necessary to encode the values.
 
 Example without encoding:  
-`panorama=example/snow.jpg&size={"height":"400px", "width":"400px"}&navbar=true&anim_speed=-2rpm&time_anim=2000`
+`panoramaView/psv-standalone.html?panorama=example/snow.jpg&size={"height":"400px", "width":"400px"}&navbar=true&anim_speed=-2rpm&time_anim=2000`
 
 Example with encoding:  
 `panoramaView/psv-standalone.html?panorama=example%2Fsnow.jpg&size=%7B%22height%22%3A%22400px%22%2C%20%22width%22%3A%22400px%22%7D&navbar=true&anim_speed=-2rpm&time_anim=2000`
 
 Example with iframe:  
-`<iframe width="100%" height="100%" src="http://intranet.corp.root.int/SPFXCDN/panoramaView/psv-standalone.html?panorama=example%2Fsnow.jpg&amp;size=%7B%22height%22%3A%22400px%22%2C%20%22width%22%3A%22400px%22%7D&amp;navbar=true&amp;anim_speed=-2rpm&amp;time_anim=2000" style="border: currentColor; border-image: none;"></iframe>`
+`<iframe width="100%" height="100%" src="panoramaView/psv-standalone.html?panorama=example%2Fsnow.jpg&amp;size=%7B%22height%22%3A%22400px%22%2C%20%22width%22%3A%22400px%22%7D&amp;navbar=true&amp;anim_speed=-2rpm&amp;time_anim=2000" style="border: currentColor; border-image: none;"></iframe>`
 
 **Using TypeScript to assemble the URL**
 ```ts
