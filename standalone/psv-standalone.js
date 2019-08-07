@@ -52,22 +52,19 @@ function parseURLParameters() {
                 anError('An invalid configuration parameter was specified: ' + option);
                 return;
         }
-
-                    /*
-            case 'hfov': case 'pitch': case 'yaw': case 'haov': case 'vaov':
-            case 'minHfov': case 'maxHfov': case 'minPitch': case 'maxPitch':
-            case 'minYaw': case 'maxYaw': case 'vOffset': case 'autoRotate':
-            case 'autoRotateOnInactivity':
-                configFromURL[option] = Number(value);
-                break;
-            case 'autoLoad': case 'ignoreGPanoXMP': case 'hotSpotDebug':
-            case 'compass':
-                configFromURL[option] = JSON.parse(value);
-                break;
-            case 'author': case 'title': case 'firstScene': case 'fallback':
-            case 'preview': case 'panorama': case 'config':
-                configFromURL[option] = decodeURIComponent(value);
-                break;*/
+        
+        /*
+        Overview of the posibilities of converting the value
+        case 'paramName1':
+            configFromURL[option] = Number(value);
+            break;
+        case 'paramName2':
+            configFromURL[option] = JSON.parse(value);
+            break;
+        case 'parmName3':
+            configFromURL[option] = decodeURIComponent(value);
+            break;
+        */
     }
 
     // Create viewer
@@ -76,7 +73,7 @@ function parseURLParameters() {
 
 // Display error if opened from local file
 if (window.location.protocol == 'file:') {
-    anError('Due to browser security restrictions, Pannellum can\'t be run ' +
+    anError('Due to browser security restrictions, Photo Sphere Viewer can\'t be run ' +
         'from the local filesystem; some sort of web server must be used.');
 } else {
     // Initialize viewer
